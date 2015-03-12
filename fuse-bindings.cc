@@ -275,7 +275,7 @@ static int bindings_setxattr (const char *path, const char *name, const char *va
   return bindings_call();
 }
 
-static int bindings_getxattr (const char *path, const char *name, const char *value, size_t size) {
+static int bindings_getxattr (const char *path, const char *name, char *value, size_t size) {
   bindings.op = OP_GETXATTR;
   bindings.path = (char *) path;
   bindings.name = (char *) name;
@@ -598,239 +598,305 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
   bindings.result = -1;
 
   switch (bindings.op) {
-    case OP_INIT:
-    argv = (Local<Value>[]) {callback};
-    argc = 1;
-    fn = bindings.ops_init;
+    case OP_INIT: {
+      Local<Value> tmp[] = {callback};
+      argv = tmp;
+      argc = 1;
+      fn = bindings.ops_init;
+    }
     break;
 
-    case OP_STATFS:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_statfs;
+    case OP_STATFS: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_statfs;
+    }
     break;
 
-    case OP_FGETATTR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-    argc = 3;
-    fn = bindings.ops_fgetattr;
+    case OP_FGETATTR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_fgetattr;
+    }
     break;
 
-    case OP_GETATTR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_getattr;
+    case OP_GETATTR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_getattr;
+    }
     break;
 
-    case OP_READDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_readdir;
+    case OP_READDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_readdir;
+    }
     break;
 
-    case OP_CREATE:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_create;
+    case OP_CREATE: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_create;
+    }
     break;
 
-    case OP_TRUNCATE:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.offset), callback};
-    argc = 3;
-    fn = bindings.ops_truncate;
+    case OP_TRUNCATE: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.offset), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_truncate;
+    }
     break;
 
-    case OP_FTRUNCATE:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.offset), callback};
-    argc = 4;
-    fn = bindings.ops_ftruncate;
+    case OP_FTRUNCATE: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.offset), callback};
+      argv = tmp;
+      argc = 4;
+      fn = bindings.ops_ftruncate;
+    }
     break;
 
-    case OP_ACCESS:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_access;
+    case OP_ACCESS: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_access;
+    }
     break;
 
-    case OP_OPEN:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_open;
+    case OP_OPEN: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_open;
+    }
     break;
 
-    case OP_OPENDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_opendir;
+    case OP_OPENDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_opendir;
+    }
     break;
 
-    case OP_WRITE:
-    buf = NanNew(bindings.buffer_persistent);
-    buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-    buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
+    case OP_WRITE: {
+      buf = NanNew(bindings.buffer_persistent);
+      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
+      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
-    argv = (Local<Value>[]) {
-      NanNew<String>(bindings.path),
-      NanNew<Number>(bindings.info->fh),
-      buf,
-      NanNew<Number>(bindings.length),
-      NanNew<Number>(bindings.offset),
-      callback
-    };
-    argc = 6;
-    fn = bindings.ops_write;
+      Local<Value> tmp[] = {
+        NanNew<String>(bindings.path),
+        NanNew<Number>(bindings.info->fh),
+        buf,
+        NanNew<Number>(bindings.length),
+        NanNew<Number>(bindings.offset),
+        callback
+      };
+
+      argv = tmp;
+      argc = 6;
+      fn = bindings.ops_write;
+    }
     break;
 
-    case OP_READ:
-    buf = NanNew(bindings.buffer_persistent);
-    buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-    buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
+    case OP_READ: {
+      buf = NanNew(bindings.buffer_persistent);
+      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
+      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
-    argv = (Local<Value>[]) {
-      NanNew<String>(bindings.path),
-      NanNew<Number>(bindings.info->fh),
-      buf,
-      NanNew<Number>(bindings.length),
-      NanNew<Number>(bindings.offset),
-      callback
-    };
-    argc = 6;
-    fn = bindings.ops_read;
+      Local<Value> tmp[] = {
+        NanNew<String>(bindings.path),
+        NanNew<Number>(bindings.info->fh),
+        buf,
+        NanNew<Number>(bindings.length),
+        NanNew<Number>(bindings.offset),
+        callback
+      };
+
+      argv = tmp;
+      argc = 6;
+      fn = bindings.ops_read;
+    }
     break;
 
-    case OP_RELEASE:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-    argc = 3;
-    fn = bindings.ops_release;
+    case OP_RELEASE: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_release;
+    }
     break;
 
-    case OP_RELEASEDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-    argc = 3;
-    fn = bindings.ops_releasedir;
+    case OP_RELEASEDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_releasedir;
+    }
     break;
 
-    case OP_UNLINK:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_unlink;
+    case OP_UNLINK: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_unlink;
+    }
     break;
 
-    case OP_RENAME:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-    argc = 3;
-    fn = bindings.ops_rename;
+    case OP_RENAME: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_rename;
+    }
     break;
 
-    case OP_LINK:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-    argc = 3;
-    fn = bindings.ops_link;
+    case OP_LINK: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_link;
+    }
     break;
 
-    case OP_SYMLINK:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-    argc = 3;
-    fn = bindings.ops_symlink;
+    case OP_SYMLINK: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_symlink;
+    }
     break;
 
-    case OP_CHMOD:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_chmod;
+    case OP_CHMOD: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_chmod;
+    }
     break;
 
-    case OP_CHOWN:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.uid), NanNew<Number>(bindings.gid), callback};
-    argc = 4;
-    fn = bindings.ops_chown;
+    case OP_CHOWN: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.uid), NanNew<Number>(bindings.gid), callback};
+      argv = tmp;
+      argc = 4;
+      fn = bindings.ops_chown;
+    }
     break;
 
-    case OP_READLINK:
-    buf = NanNew(bindings.buffer_persistent);
-    buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-    buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
+    case OP_READLINK: {
+      buf = NanNew(bindings.buffer_persistent);
+      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
+      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), buf, NanNew<Number>(bindings.length), callback};
-    argc = 4;
-    fn = bindings.ops_readlink;
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), buf, NanNew<Number>(bindings.length), callback};
+      argv = tmp;
+      argc = 4;
+      fn = bindings.ops_readlink;
+    }
     break;
 
-    case OP_SETXATTR:
-    buf = NanNew(bindings.buffer_persistent);
-    buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-    buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
+    case OP_SETXATTR: {
+      buf = NanNew(bindings.buffer_persistent);
+      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
+      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
-    argv = (Local<Value>[]) {
-      NanNew<String>(bindings.path),
-      NanNew<String>(bindings.name),
-      buf,
-      NanNew<Number>(bindings.length),
-      NanNew<Number>(bindings.offset),
-      NanNew<Number>(bindings.mode),
-      callback
-    };
-    argc = 7;
-    fn = bindings.ops_setxattr;
+      Local<Value> tmp[] = {
+        NanNew<String>(bindings.path),
+        NanNew<String>(bindings.name),
+        buf,
+        NanNew<Number>(bindings.length),
+        NanNew<Number>(bindings.offset),
+        NanNew<Number>(bindings.mode),
+        callback
+      };
+
+      argv = tmp;
+      argc = 7;
+      fn = bindings.ops_setxattr;
+    }
     break;
 
-    case OP_GETXATTR:
-    buf = NanNew(bindings.buffer_persistent);
-    buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-    buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
+    case OP_GETXATTR: {
+      buf = NanNew(bindings.buffer_persistent);
+      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
+      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
-    argv = (Local<Value>[]) {
-      NanNew<String>(bindings.path),
-      NanNew<String>(bindings.name),
-      buf,
-      NanNew<Number>(bindings.length),
-      NanNew<Number>(bindings.offset),
-      callback
-    };
-    argc = 6;
-    fn = bindings.ops_getxattr;
+      Local<Value> tmp[] = {
+        NanNew<String>(bindings.path),
+        NanNew<String>(bindings.name),
+        buf,
+        NanNew<Number>(bindings.length),
+        NanNew<Number>(bindings.offset),
+        callback
+      };
+
+      argv = tmp;
+      argc = 6;
+      fn = bindings.ops_getxattr;
+    }
     break;
 
-    case OP_MKDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-    argc = 3;
-    fn = bindings.ops_mkdir;
+    case OP_MKDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_mkdir;
+    }
     break;
 
-    case OP_RMDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_rmdir;
+    case OP_RMDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_rmdir;
+    }
     break;
 
-    case OP_DESTROY:
-    argv = (Local<Value>[]) {callback};
-    argc = 1;
-    fn = bindings.ops_destroy;
+    case OP_DESTROY: {
+      Local<Value> tmp[] = {callback};
+      argv = tmp;
+      argc = 1;
+      fn = bindings.ops_destroy;
+    }
     break;
 
-    case OP_UTIMENS:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), callback};
-    argc = 2;
-    fn = bindings.ops_utimens;
+    case OP_UTIMENS: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
+      argv = tmp;
+      argc = 2;
+      fn = bindings.ops_utimens;
+    }
     break;
 
-    case OP_FLUSH:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-    argc = 3;
-    fn = bindings.ops_flush;
+    case OP_FLUSH: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
+      argv = tmp;
+      argc = 3;
+      fn = bindings.ops_flush;
+    }
     break;
 
-    case OP_FSYNC:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
-    argc = 4;
-    fn = bindings.ops_fsync;
+    case OP_FSYNC: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 4;
+      fn = bindings.ops_fsync;
+    }
     break;
 
-    case OP_FSYNCDIR:
-    argv = (Local<Value>[]) {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
-    argc = 4;
-    fn = bindings.ops_fsyncdir;
+    case OP_FSYNCDIR: {
+      Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
+      argv = tmp;
+      argc = 4;
+      fn = bindings.ops_fsyncdir;
+    }
     break;
   }
 
