@@ -8,6 +8,13 @@ npm install fuse-bindings
 
 Created because [fuse4js](https://github.com/bcle/fuse4js) isn't maintained anymore and doesn't compile on iojs
 
+## Requirements
+
+You need to have FUSE installed
+
+* On Linux/Ubuntu `sudo apt-get install libfuse-dev`
+* On OSX install [OSXFuse](http://osxfuse.github.com/)
+
 ## Usage
 
 Try creating an empty folder called `mnt` and run the below example
