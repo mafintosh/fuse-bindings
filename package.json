@@ -11,7 +11,12 @@
     "bindings": "^1.2.1",
     "nan": "^1.7.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "standard": "^3.0.0-beta3"
+  },
+  "scripts": {
+    "test": "standard"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/mafintosh/fuse-bindings.git"
