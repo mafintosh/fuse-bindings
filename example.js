@@ -47,3 +47,9 @@ fuse.mount('./mnt', {
     return cb(str.length)
   }
 })
+
+process.on('SIGINT', function () {
+  fuse.unmount('./mnt', function () {
+    process.exit()
+  })
+})
