@@ -1,10 +1,10 @@
 {
   "name": "fuse-bindings",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
   "main": "index.js",
   "scripts": {
-    "install": "node-gyp rebuild"
+    "test": "standard"
   },
   "gypfile": true,
   "dependencies": {
@@ -13,9 +13,6 @@
   },
   "devDependencies": {
     "standard": "^3.0.0-beta3"
-  },
-  "scripts": {
-    "test": "standard"
   },
   "repository": {
     "type": "git",
