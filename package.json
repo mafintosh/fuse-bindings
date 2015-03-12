@@ -1,0 +1,25 @@
+{
+  "name": "fuse-bindings",
+  "version": "0.0.0",
+  "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "gypfile": true,
+  "dependencies": {
+    "bindings": "^1.2.1",
+    "nan": "^1.7.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/fuse-bindings.git"
+  },
+  "author": "Mathias Buus (@mafintosh)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mafintosh/fuse-bindings/issues"
+  },
+  "homepage": "https://github.com/mafintosh/fuse-bindings"
+}
