@@ -521,7 +521,8 @@ static void bindings_set_statfs (Local<Object> obj, struct statvfs *statfs) { //
 
 static void bindings_set_dirs (Local<Array> dirs) {
   for (uint32_t i = 0; i < dirs->Length(); i++) {
-    if (bindings.filler(bindings.data, (char *) *NanUtf8String(dirs->Get(i).As<String>()), &empty_stat, 0)) break;
+    NanUtf8String dir(dirs->Get(i));
+    if (bindings.filler(bindings.data, *dir, &empty_stat, 0)) break;
   }
 }
 
@@ -913,7 +914,8 @@ NAN_METHOD(Mount) {
   NanScope();
 
   memset(&empty_stat, 0, sizeof(empty_stat)); // zero empty stat
-  char *path = (char *) *NanUtf8String(args[0].As<String>());
+
+  NanUtf8String path(args[0]);
   Local<Object> ops = args[1].As<Object>();
 
   bindings.ops_init = ops->Has(NanNew<String>("init")) ? new NanCallback(ops->Get(NanNew<String>("init")).As<Function>()) : NULL;
@@ -951,12 +953,15 @@ NAN_METHOD(Mount) {
   NanAssignPersistent(bindings.buffer_persistent, args[2].As<Object>());
 
   bindings.callback = new NanCallback(NanNew<FunctionTemplate>(OpCallback)->GetFunction());
-  stpcpy(bindings.mnt, path);
+  stpcpy(bindings.mnt, *path);
   stpcpy(bindings.mntopts, "-o");
 
   Local<Array> options = ops->Get(NanNew<String>("options")).As<Array>();
   if (options->IsArray()) {
-    for (uint32_t i = 0; i < options->Length(); i++) bindings_append_opt((char *) *NanUtf8String(options->Get(i).As<String>()));
+    for (uint32_t i = 0; i < options->Length(); i++) {
+      NanUtf8String option(options->Get(i));
+      bindings_append_opt(*option);
+    }
   }
 
   // yolo
@@ -972,8 +977,8 @@ NAN_METHOD(Mount) {
 
 NAN_METHOD(UnmountSync) {
   NanScope();
-  char *path = (char *) *NanUtf8String(args[0].As<String>());
-  bindings_unmount(path);
+  NanUtf8String path(args[0]);
+  bindings_unmount(*path);
   NanReturnUndefined();
 }
 
@@ -997,14 +1002,13 @@ class UnmountWorker : public NanAsyncWorker {
   char *path;
 };
 
-
 NAN_METHOD(Unmount) {
   NanScope();
-  char *path = (char *) *NanUtf8String(args[0].As<String>());
+  NanUtf8String path(args[0]);
   Local<Function> callback = args[1].As<Function>();
 
   char *path_alloc = (char *) malloc(1024);
-  stpcpy(path_alloc, path);
+  stpcpy(path_alloc, *path);
 
   NanAsyncQueueWorker(new UnmountWorker(new NanCallback(callback), path_alloc));
   NanReturnUndefined();
