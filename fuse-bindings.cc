@@ -536,27 +536,32 @@ NAN_METHOD(OpCallback) {
 
   if (!bindings.result) {
     switch (bindings.op) {
-      case OP_STATFS:
-      if (args.Length() > 1 && args[1]->IsObject()) bindings_set_statfs(args[1].As<Object>(), (struct statvfs *) bindings.data);
+      case OP_STATFS: {
+        if (args.Length() > 1 && args[1]->IsObject()) bindings_set_statfs(args[1].As<Object>(), (struct statvfs *) bindings.data);
+      }
       break;
 
       case OP_GETATTR:
-      case OP_FGETATTR:
-      if (args.Length() > 1 && args[1]->IsObject()) bindings_set_stat(args[1].As<Object>(), (struct stat *) bindings.data);
+      case OP_FGETATTR: {
+        if (args.Length() > 1 && args[1]->IsObject()) bindings_set_stat(args[1].As<Object>(), (struct stat *) bindings.data);
+      }
       break;
 
-      case OP_READDIR:
-      if (args.Length() > 1 && args[1]->IsArray()) bindings_set_dirs(args[1].As<Array>());
+      case OP_READDIR: {
+        if (args.Length() > 1 && args[1]->IsArray()) bindings_set_dirs(args[1].As<Array>());
+      }
       break;
 
       case OP_CREATE:
       case OP_OPEN:
-      case OP_OPENDIR:
-      if (args.Length() > 1 && args[1]->IsNumber()) bindings_set_fd(args[1].As<Number>());
+      case OP_OPENDIR: {
+        if (args.Length() > 1 && args[1]->IsNumber()) bindings_set_fd(args[1].As<Number>());
+      }
       break;
 
-      case OP_UTIMENS:
-      if (args.Length() > 1 && args[1]->IsObject()) bindings_set_utimens(args[1].As<Object>(), (struct timespec *) bindings.data);
+      case OP_UTIMENS: {
+        if (args.Length() > 1 && args[1]->IsObject()) bindings_set_utimens(args[1].As<Object>(), (struct timespec *) bindings.data);
+      }
       break;
 
       case OP_INIT:
@@ -590,105 +595,84 @@ NAN_METHOD(OpCallback) {
   NanReturnUndefined();
 }
 
+static void bindings_call_op (NanCallback *fn, int argc, Local<Value> *argv) {
+  if (fn == NULL) semaphore_signal(&bindings.semaphore);
+  else fn->Call(argc, argv);
+}
+
 static void bindings_dispatch (uv_async_t* handle, int status) {
-  NanCallback *fn = NULL;
-  int argc;
-  Local<Value> *argv;
   Local<Function> callback = bindings.callback->GetFunction();
-  Local<Object> buf;
   bindings.result = -1;
 
   switch (bindings.op) {
     case OP_INIT: {
       Local<Value> tmp[] = {callback};
-      argv = tmp;
-      argc = 1;
-      fn = bindings.ops_init;
+      bindings_call_op(bindings.ops_init, 1, tmp);
     }
-    break;
+    return;
 
     case OP_STATFS: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_statfs;
+      bindings_call_op(bindings.ops_statfs, 2, tmp);
     }
-    break;
+    return;
 
     case OP_FGETATTR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_fgetattr;
+      bindings_call_op(bindings.ops_fgetattr, 3, tmp);
     }
-    break;
+    return;
 
     case OP_GETATTR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_getattr;
+      bindings_call_op(bindings.ops_getattr, 2, tmp);
     }
-    break;
+    return;
 
     case OP_READDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_readdir;
+      bindings_call_op(bindings.ops_readdir, 2, tmp);
     }
-    break;
+    return;
 
     case OP_CREATE: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_create;
+      bindings_call_op(bindings.ops_create, 3, tmp);
     }
-    break;
+    return;
 
     case OP_TRUNCATE: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.offset), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_truncate;
+      bindings_call_op(bindings.ops_truncate, 3, tmp);
     }
-    break;
+    return;
 
     case OP_FTRUNCATE: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.offset), callback};
-      argv = tmp;
-      argc = 4;
-      fn = bindings.ops_ftruncate;
+      bindings_call_op(bindings.ops_ftruncate, 4, tmp);
     }
-    break;
+    return;
 
     case OP_ACCESS: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_access;
+      bindings_call_op(bindings.ops_access, 3, tmp);
     }
-    break;
+    return;
 
     case OP_OPEN: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_open;
+      bindings_call_op(bindings.ops_open, 3, tmp);
     }
-    break;
+    return;
 
     case OP_OPENDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_opendir;
+      bindings_call_op(bindings.ops_opendir, 3, tmp);
     }
-    break;
+    return;
 
     case OP_WRITE: {
-      buf = NanNew(bindings.buffer_persistent);
+      Local<Object> buf = NanNew(bindings.buffer_persistent);
       buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
       buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
@@ -701,14 +685,12 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
         callback
       };
 
-      argv = tmp;
-      argc = 6;
-      fn = bindings.ops_write;
+      bindings_call_op(bindings.ops_write, 6, tmp);
     }
-    break;
+    return;
 
     case OP_READ: {
-      buf = NanNew(bindings.buffer_persistent);
+      Local<Object> buf = NanNew(bindings.buffer_persistent);
       buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
       buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
@@ -721,90 +703,70 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
         callback
       };
 
-      argv = tmp;
-      argc = 6;
-      fn = bindings.ops_read;
+      bindings_call_op(bindings.ops_read, 6, tmp);
     }
-    break;
+    return;
 
     case OP_RELEASE: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_release;
+      bindings_call_op(bindings.ops_release, 3, tmp);
     }
-    break;
+    return;
 
     case OP_RELEASEDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_releasedir;
+      bindings_call_op(bindings.ops_releasedir, 3, tmp);
     }
-    break;
+    return;
 
     case OP_UNLINK: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_unlink;
+      bindings_call_op(bindings.ops_unlink, 2, tmp);
     }
-    break;
+    return;
 
     case OP_RENAME: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_rename;
+      bindings_call_op(bindings.ops_rename, 3, tmp);
     }
-    break;
+    return;
 
     case OP_LINK: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_link;
+      bindings_call_op(bindings.ops_link, 3, tmp);
     }
-    break;
+    return;
 
     case OP_SYMLINK: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<String>((char *) bindings.data), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_symlink;
+      bindings_call_op(bindings.ops_symlink, 3, tmp);
     }
-    break;
+    return;
 
     case OP_CHMOD: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_chmod;
+      bindings_call_op(bindings.ops_chmod, 3, tmp);
     }
-    break;
+    return;
 
     case OP_CHOWN: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.uid), NanNew<Number>(bindings.gid), callback};
-      argv = tmp;
-      argc = 4;
-      fn = bindings.ops_chown;
+      bindings_call_op(bindings.ops_chown, 4, tmp);
     }
-    break;
+    return;
 
     case OP_READLINK: {
-      buf = NanNew(bindings.buffer_persistent);
+      Local<Object> buf = NanNew(bindings.buffer_persistent);
       buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
       buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
       Local<Value> tmp[] = {NanNew<String>(bindings.path), buf, NanNew<Number>(bindings.length), callback};
-      argv = tmp;
-      argc = 4;
-      fn = bindings.ops_readlink;
+      bindings_call_op(bindings.ops_readlink, 4, tmp);
     }
-    break;
+    return;
 
     case OP_SETXATTR: {
-      buf = NanNew(bindings.buffer_persistent);
+      Local<Object> buf = NanNew(bindings.buffer_persistent);
       buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
       buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
@@ -818,14 +780,12 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
         callback
       };
 
-      argv = tmp;
-      argc = 7;
-      fn = bindings.ops_setxattr;
+      bindings_call_op(bindings.ops_setxattr, 7, tmp);
     }
-    break;
+    return;
 
     case OP_GETXATTR: {
-      buf = NanNew(bindings.buffer_persistent);
+      Local<Object> buf = NanNew(bindings.buffer_persistent);
       buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
       buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
 
@@ -838,71 +798,54 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
         callback
       };
 
-      argv = tmp;
-      argc = 6;
-      fn = bindings.ops_getxattr;
+      bindings_call_op(bindings.ops_getxattr, 6, tmp);
     }
-    break;
+    return;
 
     case OP_MKDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_mkdir;
+      bindings_call_op(bindings.ops_mkdir, 3, tmp);
     }
-    break;
+    return;
 
     case OP_RMDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_rmdir;
+      bindings_call_op(bindings.ops_rmdir, 2, tmp);
     }
-    break;
+    return;
 
     case OP_DESTROY: {
       Local<Value> tmp[] = {callback};
-      argv = tmp;
-      argc = 1;
-      fn = bindings.ops_destroy;
+      bindings_call_op(bindings.ops_destroy, 1, tmp);
     }
-    break;
+    return;
 
     case OP_UTIMENS: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), callback};
-      argv = tmp;
-      argc = 2;
-      fn = bindings.ops_utimens;
+      bindings_call_op(bindings.ops_utimens, 2, tmp);
     }
-    break;
+    return;
 
     case OP_FLUSH: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), callback};
-      argv = tmp;
-      argc = 3;
-      fn = bindings.ops_flush;
+      bindings_call_op(bindings.ops_flush, 3, tmp);
     }
-    break;
+    return;
 
     case OP_FSYNC: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 4;
-      fn = bindings.ops_fsync;
+      bindings_call_op(bindings.ops_fsync, 4, tmp);
     }
-    break;
+    return;
 
     case OP_FSYNCDIR: {
       Local<Value> tmp[] = {NanNew<String>(bindings.path), NanNew<Number>(bindings.info->fh), NanNew<Number>(bindings.mode), callback};
-      argv = tmp;
-      argc = 4;
-      fn = bindings.ops_fsyncdir;
+      bindings_call_op(bindings.ops_fsyncdir, 4, tmp);
     }
-    break;
+    return;
   }
 
-  if (fn == NULL) semaphore_signal(&bindings.semaphore);
-  else fn->Call(argc, argv);
+  semaphore_signal(&bindings.semaphore);
 }
 
 static void bindings_append_opt (char *name) {
