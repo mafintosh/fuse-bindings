@@ -2,6 +2,7 @@ var fuse = require('./')
 
 fuse.mount('./mnt', {
   readdir: function (path, cb) {
+    console.log('readdir(%s)', path)
     if (path === '/') return cb(0, ['test'])
     cb(0)
   },
