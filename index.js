@@ -6,14 +6,17 @@ var noop = function () {}
 
 var FuseBuffer = function () {
   this.length = 0
+  this.parent = undefined
 }
 
 FuseBuffer.prototype = Buffer.prototype
 
+fuse.setBuffer(FuseBuffer)
+
 exports.mount = function (mnt, ops) {
   if (!ops) ops = {}
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
-  return fuse.mount(path.resolve(mnt), ops, new FuseBuffer())
+  return fuse.mount(path.resolve(mnt), ops)
 }
 
 exports.unmount = function (mnt, cb) {

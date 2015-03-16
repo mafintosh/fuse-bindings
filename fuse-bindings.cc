@@ -50,6 +50,7 @@ enum bindings_ops_t {
   OP_DESTROY
 };
 
+static Persistent<Function> buffer_constructor;
 static struct stat empty_stat;
 
 // TODO support more than a single mount
@@ -64,9 +65,6 @@ static struct {
   sem_t semaphore;
 #endif
   uv_async_t async;
-
-  // buffer
-  Persistent<Object> buffer_persistent;
 
   // methods
   NanCallback *ops_init;
@@ -140,7 +138,7 @@ static void bindings_unmount (char *path) {
 }
 
 static int semaphore_init (sem_t *sem) {
-  return sem_init(sem, 0, 1);
+  return sem_init(sem, 0, 0);
 }
 
 static void semaphore_wait (sem_t *sem) {
@@ -152,7 +150,21 @@ static void semaphore_signal (sem_t *sem) {
 }
 #endif
 
-static int bindings_call () {
+#if (NODE_MODULE_VERSION > NODE_0_10_MODULE_VERSION)
+NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
+  Local<Object> buf = NanNew(buffer_constructor)->NewInstance(0, NULL);
+  buf->Set(NanNew<String>("length"), NanNew<Number>(length));
+  buf->SetIndexedPropertiesToExternalArrayData((char *) data, kExternalUnsignedByteArray, length);
+  return buf;
+}
+#else
+void noop (char *data, void *hint) {}
+NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
+  return NanNewBufferHandle(data, length, noop, NULL);
+}
+#endif
+
+NAN_INLINE static int bindings_call () {
   uv_async_send(&bindings.async);
   semaphore_wait(&bindings.semaphore);
   return bindings.result;
@@ -469,7 +481,7 @@ static void *bindings_thread (void *) {
   return NULL;
 }
 
-static void bindings_set_date (Local<Date> date, struct timespec *out) {
+NAN_INLINE static void bindings_set_date (Local<Date> date, struct timespec *out) {
   double ms = date->NumberValue();
   time_t secs = (time_t)(ms / 1000.0);
   time_t rem = ms - (1000.0 * secs);
@@ -478,7 +490,7 @@ static void bindings_set_date (Local<Date> date, struct timespec *out) {
   out->tv_nsec = ns;
 }
 
-static void bindings_set_stat (Local<Object> obj, struct stat *stat) {
+NAN_INLINE static void bindings_set_stat (Local<Object> obj, struct stat *stat) {
   if (obj->Has(NanNew<String>("dev"))) stat->st_dev = obj->Get(NanNew<String>("dev"))->NumberValue();
   if (obj->Has(NanNew<String>("ino"))) stat->st_ino = obj->Get(NanNew<String>("ino"))->NumberValue();
   if (obj->Has(NanNew<String>("mode"))) stat->st_mode = obj->Get(NanNew<String>("mode"))->Uint32Value();
@@ -500,12 +512,12 @@ static void bindings_set_stat (Local<Object> obj, struct stat *stat) {
 #endif
 }
 
-static void bindings_set_utimens (Local<Object> obj, struct timespec tv[2]) {
+NAN_INLINE static void bindings_set_utimens (Local<Object> obj, struct timespec tv[2]) {
   if (obj->Has(NanNew<String>("atime"))) bindings_set_date(obj->Get(NanNew("atime")).As<Date>(), &tv[0]);
   if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(obj->Get(NanNew("mtime")).As<Date>(), &tv[1]);
 }
 
-static void bindings_set_statfs (Local<Object> obj, struct statvfs *statfs) { // from http://linux.die.net/man/2/stat
+NAN_INLINE static void bindings_set_statfs (Local<Object> obj, struct statvfs *statfs) { // from http://linux.die.net/man/2/stat
   if (obj->Has(NanNew<String>("bsize"))) statfs->f_bsize = obj->Get(NanNew<String>("bsize"))->Uint32Value();
   if (obj->Has(NanNew<String>("frsize"))) statfs->f_frsize = obj->Get(NanNew<String>("frsize"))->Uint32Value();
   if (obj->Has(NanNew<String>("blocks"))) statfs->f_blocks = obj->Get(NanNew<String>("blocks"))->Uint32Value();
@@ -519,14 +531,14 @@ static void bindings_set_statfs (Local<Object> obj, struct statvfs *statfs) { //
   if (obj->Has(NanNew<String>("namemax"))) statfs->f_namemax = obj->Get(NanNew<String>("namemax"))->Uint32Value();
 }
 
-static void bindings_set_dirs (Local<Array> dirs) {
+NAN_INLINE static void bindings_set_dirs (Local<Array> dirs) {
   for (uint32_t i = 0; i < dirs->Length(); i++) {
     NanUtf8String dir(dirs->Get(i));
     if (bindings.filler(bindings.data, *dir, &empty_stat, 0)) break;
   }
 }
 
-static void bindings_set_fd (Local<Number> fd) {
+NAN_INLINE static void bindings_set_fd (Local<Number> fd) {
   bindings.info->fh = fd->Uint32Value();
 }
 
@@ -595,7 +607,7 @@ NAN_METHOD(OpCallback) {
   NanReturnUndefined();
 }
 
-static void bindings_call_op (NanCallback *fn, int argc, Local<Value> *argv) {
+NAN_INLINE static void bindings_call_op (NanCallback *fn, int argc, Local<Value> *argv) {
   if (fn == NULL) semaphore_signal(&bindings.semaphore);
   else fn->Call(argc, argv);
 }
@@ -672,37 +684,27 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_WRITE: {
-      Local<Object> buf = NanNew(bindings.buffer_persistent);
-      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
-
       Local<Value> tmp[] = {
         NanNew<String>(bindings.path),
         NanNew<Number>(bindings.info->fh),
-        buf,
+        bindings_buffer((char *) bindings.data, bindings.length),
         NanNew<Number>(bindings.length),
         NanNew<Number>(bindings.offset),
         callback
       };
-
       bindings_call_op(bindings.ops_write, 6, tmp);
     }
     return;
 
     case OP_READ: {
-      Local<Object> buf = NanNew(bindings.buffer_persistent);
-      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
-
       Local<Value> tmp[] = {
         NanNew<String>(bindings.path),
         NanNew<Number>(bindings.info->fh),
-        buf,
+        bindings_buffer((char *) bindings.data, bindings.length),
         NanNew<Number>(bindings.length),
         NanNew<Number>(bindings.offset),
         callback
       };
-
       bindings_call_op(bindings.ops_read, 6, tmp);
     }
     return;
@@ -756,48 +758,39 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_READLINK: {
-      Local<Object> buf = NanNew(bindings.buffer_persistent);
-      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
-
-      Local<Value> tmp[] = {NanNew<String>(bindings.path), buf, NanNew<Number>(bindings.length), callback};
+      Local<Value> tmp[] = {
+        NanNew<String>(bindings.path),
+        bindings_buffer((char *) bindings.data, bindings.length),
+        NanNew<Number>(bindings.length),
+        callback
+      };
       bindings_call_op(bindings.ops_readlink, 4, tmp);
     }
     return;
 
     case OP_SETXATTR: {
-      Local<Object> buf = NanNew(bindings.buffer_persistent);
-      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
-
       Local<Value> tmp[] = {
         NanNew<String>(bindings.path),
         NanNew<String>(bindings.name),
-        buf,
+        bindings_buffer((char *) bindings.data, bindings.length),
         NanNew<Number>(bindings.length),
         NanNew<Number>(bindings.offset),
         NanNew<Number>(bindings.mode),
         callback
       };
-
       bindings_call_op(bindings.ops_setxattr, 7, tmp);
     }
     return;
 
     case OP_GETXATTR: {
-      Local<Object> buf = NanNew(bindings.buffer_persistent);
-      buf->Set(NanNew<String>("length"), NanNew<Number>(bindings.length));
-      buf->SetIndexedPropertiesToExternalArrayData((char *) bindings.data, kExternalUnsignedByteArray, bindings.length);
-
       Local<Value> tmp[] = {
         NanNew<String>(bindings.path),
         NanNew<String>(bindings.name),
-        buf,
+        bindings_buffer((char *) bindings.data, bindings.length),
         NanNew<Number>(bindings.length),
         NanNew<Number>(bindings.offset),
         callback
       };
-
       bindings_call_op(bindings.ops_getxattr, 6, tmp);
     }
     return;
@@ -893,8 +886,6 @@ NAN_METHOD(Mount) {
   bindings.ops_rmdir = ops->Has(NanNew<String>("rmdir")) ? new NanCallback(ops->Get(NanNew<String>("rmdir")).As<Function>()) : NULL;
   bindings.ops_destroy = ops->Has(NanNew<String>("destroy")) ? new NanCallback(ops->Get(NanNew<String>("destroy")).As<Function>()) : NULL;
 
-  NanAssignPersistent(bindings.buffer_persistent, args[2].As<Object>());
-
   bindings.callback = new NanCallback(NanNew<FunctionTemplate>(OpCallback)->GetFunction());
   stpcpy(bindings.mnt, *path);
   stpcpy(bindings.mntopts, "-o");
@@ -945,6 +936,12 @@ class UnmountWorker : public NanAsyncWorker {
   char *path;
 };
 
+NAN_METHOD(SetBuffer) {
+  NanScope();
+  NanAssignPersistent(buffer_constructor, args[0].As<Function>());
+  NanReturnUndefined();
+}
+
 NAN_METHOD(Unmount) {
   NanScope();
   NanUtf8String path(args[0]);
@@ -958,6 +955,7 @@ NAN_METHOD(Unmount) {
 }
 
 void Init(Handle<Object> exports) {
+  exports->Set(NanNew("setBuffer"), NanNew<FunctionTemplate>(SetBuffer)->GetFunction());
   exports->Set(NanNew("mount"), NanNew<FunctionTemplate>(Mount)->GetFunction());
   exports->Set(NanNew("unmount"), NanNew<FunctionTemplate>(Unmount)->GetFunction());
   exports->Set(NanNew("unmountSync"), NanNew<FunctionTemplate>(UnmountSync)->GetFunction());
