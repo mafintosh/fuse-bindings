@@ -581,6 +581,7 @@ NAN_METHOD(OpCallback) {
       break;
 
       case OP_INIT:
+      case OP_ERROR:
       case OP_ACCESS:
       case OP_FLUSH:
       case OP_FSYNC:
