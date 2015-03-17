@@ -1,6 +1,6 @@
 #include <nan.h>
 
-#define FUSE_USE_VERSION 26
+#define FUSE_USE_VERSION 29
 
 #include <fuse.h>
 #include <semaphore.h>
@@ -137,7 +137,10 @@ static void semaphore_signal (dispatch_semaphore_t *sem) {
 }
 #else
 static void bindings_unmount (char *path) {
-  umount(path);
+  char *argv[] = {"fusermount", "-q", "-u", path, NULL};
+  pid_t cpid = vfork();
+  if (cpid > 0) waitpid(cpid, NULL, 0);
+  else execvp(argv[0], argv);
 }
 
 static int semaphore_init (sem_t *sem) {
