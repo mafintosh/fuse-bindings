@@ -37,7 +37,7 @@ exports.mount = function (mnt, ops, cb) {
   fs.stat(mnt, function (err, stat) {
     if (err) return cb(new Error('Mountpoint does not exist'))
     if (!stat.isDirectory()) return cb(new Error('Mountpoint is not a directory'))
-    fs.stat(path.join(mnt, '..'), function(_, parent) {
+    fs.stat(path.join(mnt, '..'), function (_, parent) {
       if (parent && parent.dev !== stat.dev) return cb(new Error('Mountpoint in use'))
       fuse.mount(mnt, ops)
     })
