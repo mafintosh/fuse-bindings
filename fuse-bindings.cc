@@ -471,7 +471,7 @@ static void *bindings_thread (void *) {
     (char *) bindings.mntopts
   };
 
-  bindings_unmount(bindings.mnt); // should probably throw instead if mounted
+  // bindings_unmount(bindings.mnt); // should probably throw instead if mounted
 
   if (fuse_main(!strcmp(bindings.mntopts, "-o") ? 4 : 5, argv, &ops, NULL)) {
     // TODO: error handle somehow
