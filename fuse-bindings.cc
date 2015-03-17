@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mount.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #endif
