@@ -125,35 +125,36 @@ static void bindings_unmount (char *path) {
   unmount(path, 0);
 }
 
-static int semaphore_init (dispatch_semaphore_t *sem) {
+NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
   *sem = dispatch_semaphore_create(0);
   return *sem == NULL ? -1 : 0;
 }
 
-static void semaphore_wait (dispatch_semaphore_t *sem) {
+NAN_INLINE static void semaphore_wait (dispatch_semaphore_t *sem) {
   dispatch_semaphore_wait(*sem, DISPATCH_TIME_FOREVER);
 }
 
-static void semaphore_signal (dispatch_semaphore_t *sem) {
+NAN_INLINE static void semaphore_signal (dispatch_semaphore_t *sem) {
   dispatch_semaphore_signal(*sem);
 }
 #else
 static void bindings_unmount (char *path) {
+  // TODO: if someone knows a better way to get this working on linux let me know
   char *argv[] = {"fusermount", "-q", "-u", path, NULL};
   pid_t cpid = vfork();
   if (cpid > 0) waitpid(cpid, NULL, 0);
   else execvp(argv[0], argv);
 }
 
-static int semaphore_init (sem_t *sem) {
+NAN_INLINE static int semaphore_init (sem_t *sem) {
   return sem_init(sem, 0, 0);
 }
 
-static void semaphore_wait (sem_t *sem) {
+NAN_INLINE static void semaphore_wait (sem_t *sem) {
   sem_wait(sem);
 }
 
-static void semaphore_signal (sem_t *sem) {
+NAN_INLINE static void semaphore_signal (sem_t *sem) {
   sem_post(sem);
 }
 #endif
@@ -472,7 +473,7 @@ static void *bindings_thread (void *) {
   if (bindings.ops_destroy != NULL) ops.destroy = bindings_destroy;
 
   char *argv[] = {
-    (char *) "dummy",
+    (char *) "fuse_bindings_dummy",
     (char *) "-s",
     (char *) "-f",
     (char *) bindings.mnt,
