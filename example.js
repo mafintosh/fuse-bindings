@@ -47,6 +47,9 @@ fuse.mount('./mnt', {
     buf.write(str)
     return cb(str.length)
   }
+}, function (err) {
+  if (err) throw err
+  console.log('filesystem mounted on ./mnt')
 })
 
 process.on('SIGINT', function () {

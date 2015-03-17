@@ -1,8 +1,10 @@
 var bindings = require('bindings')
 var fuse = bindings('fuse_bindings')
+var fs = require('fs')
 var path = require('path')
 
 var noop = function () {}
+var call = function (cb) { cb() }
 
 var FuseBuffer = function () {
   this.length = 0
@@ -13,10 +15,33 @@ FuseBuffer.prototype = Buffer.prototype
 
 fuse.setBuffer(FuseBuffer)
 
-exports.mount = function (mnt, ops) {
+exports.mount = function (mnt, ops, cb) {
+  if (!cb) cb = noop
   if (!ops) ops = {}
+
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
-  return fuse.mount(path.resolve(mnt), ops)
+  mnt = path.resolve(mnt)
+
+  var init = ops.init || call
+  ops.init = function (next) {
+    cb()
+    init(next)
+  }
+
+  var error = ops.error || call
+  ops.error = function (next) {
+    cb(new Error('Mount failed'))
+    error(next)
+  }
+
+  fs.stat(mnt, function (err, stat) {
+    if (err) return cb(new Error('Mountpoint does not exist'))
+    if (!stat.isDirectory()) return cb(new Error('Mountpoint is not a directory'))
+    fs.stat(path.join(mnt, '..'), function(_, parent) {
+      if (parent && parent.dev !== stat.dev) return cb(new Error('Mountpoint in use'))
+      fuse.mount(mnt, ops)
+    })
+  })
 }
 
 exports.unmount = function (mnt, cb) {

@@ -18,6 +18,7 @@ using namespace v8;
 
 enum bindings_ops_t {
   OP_INIT = 0,
+  OP_ERROR,
   OP_ACCESS,
   OP_STATFS,
   OP_FGETATTR,
@@ -54,6 +55,7 @@ static Persistent<Function> buffer_constructor;
 static struct stat empty_stat;
 
 // TODO support more than a single mount
+static int bindings_in_use = 0;
 static struct {
   // fuse data
   char mnt[1024];
@@ -68,6 +70,7 @@ static struct {
 
   // methods
   NanCallback *ops_init;
+  NanCallback *ops_error;
   NanCallback *ops_access;
   NanCallback *ops_statfs;
   NanCallback *ops_getattr;
@@ -471,11 +474,9 @@ static void *bindings_thread (void *) {
     (char *) bindings.mntopts
   };
 
-  // bindings_unmount(bindings.mnt); // should probably throw instead if mounted
-
   if (fuse_main(!strcmp(bindings.mntopts, "-o") ? 4 : 5, argv, &ops, NULL)) {
-    // TODO: error handle somehow
-    printf("fuse-binding: mount failed\n");
+    bindings.op = OP_ERROR;
+    bindings_call();
   }
 
   return NULL;
@@ -620,6 +621,12 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     case OP_INIT: {
       Local<Value> tmp[] = {callback};
       bindings_call_op(bindings.ops_init, 1, tmp);
+    }
+    return;
+
+    case OP_ERROR: {
+      Local<Value> tmp[] = {callback};
+      bindings_call_op(bindings.ops_error, 1, tmp);
     }
     return;
 
@@ -849,12 +856,17 @@ static void bindings_append_opt (char *name) {
 NAN_METHOD(Mount) {
   NanScope();
 
+  if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
+  if (bindings_in_use) return NanThrowError("Currently only a single filesystem can be mounted at the time");
+  bindings_in_use = 1;
+
   memset(&empty_stat, 0, sizeof(empty_stat)); // zero empty stat
 
   NanUtf8String path(args[0]);
   Local<Object> ops = args[1].As<Object>();
 
   bindings.ops_init = ops->Has(NanNew<String>("init")) ? new NanCallback(ops->Get(NanNew<String>("init")).As<Function>()) : NULL;
+  bindings.ops_error = ops->Has(NanNew<String>("error")) ? new NanCallback(ops->Get(NanNew<String>("error")).As<Function>()) : NULL;
   bindings.ops_access = ops->Has(NanNew<String>("access")) ? new NanCallback(ops->Get(NanNew<String>("access")).As<Function>()) : NULL;
   bindings.ops_statfs = ops->Has(NanNew<String>("statfs")) ? new NanCallback(ops->Get(NanNew<String>("statfs")).As<Function>()) : NULL;
   bindings.ops_getattr = ops->Has(NanNew<String>("getattr")) ? new NanCallback(ops->Get(NanNew<String>("getattr")).As<Function>()) : NULL;
@@ -944,6 +956,8 @@ NAN_METHOD(SetBuffer) {
 
 NAN_METHOD(Unmount) {
   NanScope();
+
+  if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
   NanUtf8String path(args[0]);
   Local<Function> callback = args[1].As<Function>();
 
