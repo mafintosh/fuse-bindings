@@ -12,7 +12,7 @@
     "nan": "^1.7.0"
   },
   "devDependencies": {
-    "standard": "^3.0.0-beta3"
+    "standard": "^3.2.0"
   },
   "repository": {
     "type": "git",
