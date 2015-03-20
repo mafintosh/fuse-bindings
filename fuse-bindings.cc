@@ -61,6 +61,8 @@ static struct stat empty_stat;
 // TODO support more than a single mount
 static int bindings_in_use = 0;
 static struct {
+  int gc;
+
   // fuse data
   char mnt[1024];
   char mntopts[1024];
@@ -509,39 +511,9 @@ static void *bindings_thread (void *) {
 
   uv_close((uv_handle_t*) &bindings.async, NULL);
 
-  if (bindings.ops_access != NULL) delete bindings.ops_access;
-  if (bindings.ops_truncate != NULL) delete bindings.ops_truncate;
-  if (bindings.ops_ftruncate != NULL) delete bindings.ops_ftruncate;
-  if (bindings.ops_getattr != NULL) delete bindings.ops_getattr;
-  if (bindings.ops_fgetattr != NULL) delete bindings.ops_fgetattr;
-  if (bindings.ops_flush != NULL) delete bindings.ops_flush;
-  if (bindings.ops_fsync != NULL) delete bindings.ops_fsync;
-  if (bindings.ops_fsyncdir != NULL) delete bindings.ops_fsyncdir;
-  if (bindings.ops_readdir != NULL) delete bindings.ops_readdir;
-  if (bindings.ops_readlink != NULL) delete bindings.ops_readlink;
-  if (bindings.ops_chown != NULL) delete bindings.ops_chown;
-  if (bindings.ops_chmod != NULL) delete bindings.ops_chmod;
-  if (bindings.ops_setxattr != NULL) delete bindings.ops_setxattr;
-  if (bindings.ops_getxattr != NULL) delete bindings.ops_getxattr;
-  if (bindings.ops_statfs != NULL) delete bindings.ops_statfs;
-  if (bindings.ops_open != NULL) delete bindings.ops_open;
-  if (bindings.ops_opendir != NULL) delete bindings.ops_opendir;
-  if (bindings.ops_read != NULL) delete bindings.ops_read;
-  if (bindings.ops_write != NULL) delete bindings.ops_write;
-  if (bindings.ops_release != NULL) delete bindings.ops_release;
-  if (bindings.ops_releasedir != NULL) delete bindings.ops_releasedir;
-  if (bindings.ops_create != NULL) delete bindings.ops_create;
-  if (bindings.ops_utimens != NULL) delete bindings.ops_utimens;
-  if (bindings.ops_unlink != NULL) delete bindings.ops_unlink;
-  if (bindings.ops_rename != NULL) delete bindings.ops_rename;
-  if (bindings.ops_link != NULL) delete bindings.ops_link;
-  if (bindings.ops_symlink != NULL) delete bindings.ops_symlink;
-  if (bindings.ops_mkdir != NULL) delete bindings.ops_mkdir;
-  if (bindings.ops_rmdir != NULL) delete bindings.ops_rmdir;
-  if (bindings.ops_init != NULL) delete bindings.ops_init;
-  if (bindings.ops_destroy != NULL) delete bindings.ops_destroy;
-
   bindings.fuse = NULL;
+  bindings.gc = 1;
+
   bindings_in_use = 0;
 
   return NULL;
@@ -925,6 +897,40 @@ NAN_METHOD(Mount) {
   if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
   if (bindings_in_use) return NanThrowError("Currently only a single filesystem can be mounted at the time");
   bindings_in_use = 1;
+
+  if (bindings.gc) {
+    if (bindings.ops_access != NULL) delete bindings.ops_access;
+    if (bindings.ops_truncate != NULL) delete bindings.ops_truncate;
+    if (bindings.ops_ftruncate != NULL) delete bindings.ops_ftruncate;
+    if (bindings.ops_getattr != NULL) delete bindings.ops_getattr;
+    if (bindings.ops_fgetattr != NULL) delete bindings.ops_fgetattr;
+    if (bindings.ops_flush != NULL) delete bindings.ops_flush;
+    if (bindings.ops_fsync != NULL) delete bindings.ops_fsync;
+    if (bindings.ops_fsyncdir != NULL) delete bindings.ops_fsyncdir;
+    if (bindings.ops_readdir != NULL) delete bindings.ops_readdir;
+    if (bindings.ops_readlink != NULL) delete bindings.ops_readlink;
+    if (bindings.ops_chown != NULL) delete bindings.ops_chown;
+    if (bindings.ops_chmod != NULL) delete bindings.ops_chmod;
+    if (bindings.ops_setxattr != NULL) delete bindings.ops_setxattr;
+    if (bindings.ops_getxattr != NULL) delete bindings.ops_getxattr;
+    if (bindings.ops_statfs != NULL) delete bindings.ops_statfs;
+    if (bindings.ops_open != NULL) delete bindings.ops_open;
+    if (bindings.ops_opendir != NULL) delete bindings.ops_opendir;
+    if (bindings.ops_read != NULL) delete bindings.ops_read;
+    if (bindings.ops_write != NULL) delete bindings.ops_write;
+    if (bindings.ops_release != NULL) delete bindings.ops_release;
+    if (bindings.ops_releasedir != NULL) delete bindings.ops_releasedir;
+    if (bindings.ops_create != NULL) delete bindings.ops_create;
+    if (bindings.ops_utimens != NULL) delete bindings.ops_utimens;
+    if (bindings.ops_unlink != NULL) delete bindings.ops_unlink;
+    if (bindings.ops_rename != NULL) delete bindings.ops_rename;
+    if (bindings.ops_link != NULL) delete bindings.ops_link;
+    if (bindings.ops_symlink != NULL) delete bindings.ops_symlink;
+    if (bindings.ops_mkdir != NULL) delete bindings.ops_mkdir;
+    if (bindings.ops_rmdir != NULL) delete bindings.ops_rmdir;
+    if (bindings.ops_init != NULL) delete bindings.ops_init;
+    if (bindings.ops_destroy != NULL) delete bindings.ops_destroy;
+  }
 
   memset(&empty_stat, 0, sizeof(empty_stat));
   memset(&bindings, 0, sizeof(bindings));
