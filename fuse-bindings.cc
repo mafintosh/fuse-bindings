@@ -149,11 +149,22 @@ NAN_INLINE static void semaphore_wait (sem_t *sem) {
 NAN_INLINE static void semaphore_signal (sem_t *sem) {
   sem_post(sem);
 }
+
+static void bindings_fusermount (char *path) {
+  char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
+  pid_t cpid = vfork();
+  if (cpid > 0) waitpid(cpid, NULL, 0);
+  else execvp(argv[0], argv);
+}
 #endif
 
 static void bindings_unmount (char *path) {
   if (!strcmp(bindings.mnt, path) && bindings.fuse != NULL) {
+#ifdef __APPLE__
     fuse_unmount(bindings.mnt, bindings.fuse_channel);
+#else
+    bindings_fusermount(path);
+#endif
     pthread_join(bindings.thread, NULL);
     return;
   }
@@ -161,11 +172,7 @@ static void bindings_unmount (char *path) {
 #ifdef __APPLE__
   unmount(path, 0);
 #else
-  // TODO: if someone knows a better way to get this working on linux let me know
-  char *argv[] = {"fusermount", "-q", "-u", path, NULL};
-  pid_t cpid = vfork();
-  if (cpid > 0) waitpid(cpid, NULL, 0);
-  else execvp(argv[0], argv);
+  bindings_fusermount(path);
 #endif
 }
 
