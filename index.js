@@ -22,34 +22,42 @@ exports.mount = function (mnt, ops, cb) {
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
   mnt = path.resolve(mnt)
 
+  var callback = function (err) {
+    callback = noop
+    ops.init = init
+    ops.error = error
+    process.nextTick(cb.bind(null, err))
+  }
+
   var init = ops.init || call
   ops.init = function (next) {
-    cb()
+    callback()
     init(next)
   }
 
   var error = ops.error || call
   ops.error = function (next) {
-    cb(new Error('Mount failed'))
+    callback(new Error('Mount failed'))
     error(next)
   }
 
-  fs.stat(mnt, function (err, stat) {
-    if (err) return cb(new Error('Mountpoint does not exist'))
-    if (!stat.isDirectory()) return cb(new Error('Mountpoint is not a directory'))
-    fs.stat(path.join(mnt, '..'), function (_, parent) {
-      if (parent && parent.dev !== stat.dev) return cb(new Error('Mountpoint in use'))
-      fuse.mount(mnt, ops)
+  var mount = function () {
+    fs.stat(mnt, function (err, stat) {
+      if (err) return cb(new Error('Mountpoint does not exist'))
+      if (!stat.isDirectory()) return cb(new Error('Mountpoint is not a directory'))
+      fs.stat(path.join(mnt, '..'), function (_, parent) {
+        if (parent && parent.dev !== stat.dev) return cb(new Error('Mountpoint in use'))
+        fuse.mount(mnt, ops)
+      })
     })
-  })
+  }
+
+  if (!ops.force) return mount()
+  exports.unmount(mnt, mount)
 }
 
 exports.unmount = function (mnt, cb) {
   fuse.unmount(path.resolve(mnt), cb || noop)
-}
-
-exports.unmountSync = function (mnt) {
-  return fuse.unmountSync(path.resolve(mnt))
 }
 
 exports.EPERM = -1

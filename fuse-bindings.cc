@@ -3,6 +3,8 @@
 #define FUSE_USE_VERSION 29
 
 #include <fuse.h>
+#include <fuse_opt.h>
+#include <fuse_lowlevel.h>
 #include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
@@ -62,6 +64,8 @@ static struct {
   // fuse data
   char mnt[1024];
   char mntopts[1024];
+  struct fuse *fuse;
+  struct fuse_chan *fuse_channel;
   pthread_t thread;
 #ifdef __APPLE__
   dispatch_semaphore_t semaphore;
@@ -121,10 +125,6 @@ static struct {
 } bindings;
 
 #ifdef __APPLE__
-static void bindings_unmount (char *path) {
-  unmount(path, 0);
-}
-
 NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
   *sem = dispatch_semaphore_create(0);
   return *sem == NULL ? -1 : 0;
@@ -138,14 +138,6 @@ NAN_INLINE static void semaphore_signal (dispatch_semaphore_t *sem) {
   dispatch_semaphore_signal(*sem);
 }
 #else
-static void bindings_unmount (char *path) {
-  // TODO: if someone knows a better way to get this working on linux let me know
-  char *argv[] = {"fusermount", "-q", "-u", path, NULL};
-  pid_t cpid = vfork();
-  if (cpid > 0) waitpid(cpid, NULL, 0);
-  else execvp(argv[0], argv);
-}
-
 NAN_INLINE static int semaphore_init (sem_t *sem) {
   return sem_init(sem, 0, 0);
 }
@@ -158,6 +150,25 @@ NAN_INLINE static void semaphore_signal (sem_t *sem) {
   sem_post(sem);
 }
 #endif
+
+static void bindings_unmount (char *path) {
+  if (!strcmp(bindings.mnt, path) && bindings.fuse != NULL) {
+    fuse_unmount(bindings.mnt, bindings.fuse_channel);
+    pthread_join(bindings.thread, NULL);
+    return;
+  }
+
+#ifdef __APPLE__
+  unmount(path, 0);
+#else
+  // TODO: if someone knows a better way to get this working on linux let me know
+  char *argv[] = {"fusermount", "-q", "-u", path, NULL};
+  pid_t cpid = vfork();
+  if (cpid > 0) waitpid(cpid, NULL, 0);
+  else execvp(argv[0], argv);
+#endif
+}
+
 
 #if (NODE_MODULE_VERSION > NODE_0_10_MODULE_VERSION)
 NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
@@ -472,18 +483,59 @@ static void *bindings_thread (void *) {
   if (bindings.ops_init != NULL) ops.init = bindings_init;
   if (bindings.ops_destroy != NULL) ops.destroy = bindings_destroy;
 
+  int argc = !strcmp(bindings.mntopts, "-o") ? 1 : 2;
   char *argv[] = {
     (char *) "fuse_bindings_dummy",
-    (char *) "-s",
-    (char *) "-f",
-    (char *) bindings.mnt,
     (char *) bindings.mntopts
   };
 
-  if (fuse_main(!strcmp(bindings.mntopts, "-o") ? 4 : 5, argv, &ops, NULL)) {
-    bindings.op = OP_ERROR;
-    bindings_call();
-  }
+  struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+  struct fuse_chan *ch = bindings.fuse_channel = fuse_mount(bindings.mnt, &args);
+
+  int ops_size = sizeof(struct fuse_operations);
+  bindings.fuse = fuse_new(ch, &args, &ops, ops_size, NULL);
+  bindings.fuse_channel = ch;
+
+  fuse_loop(bindings.fuse);
+  fuse_session_remove_chan(ch);
+  fuse_destroy(bindings.fuse);
+
+  uv_close((uv_handle_t*) &bindings.async, NULL);
+
+  if (bindings.ops_access != NULL) delete bindings.ops_access;
+  if (bindings.ops_truncate != NULL) delete bindings.ops_truncate;
+  if (bindings.ops_ftruncate != NULL) delete bindings.ops_ftruncate;
+  if (bindings.ops_getattr != NULL) delete bindings.ops_getattr;
+  if (bindings.ops_fgetattr != NULL) delete bindings.ops_fgetattr;
+  if (bindings.ops_flush != NULL) delete bindings.ops_flush;
+  if (bindings.ops_fsync != NULL) delete bindings.ops_fsync;
+  if (bindings.ops_fsyncdir != NULL) delete bindings.ops_fsyncdir;
+  if (bindings.ops_readdir != NULL) delete bindings.ops_readdir;
+  if (bindings.ops_readlink != NULL) delete bindings.ops_readlink;
+  if (bindings.ops_chown != NULL) delete bindings.ops_chown;
+  if (bindings.ops_chmod != NULL) delete bindings.ops_chmod;
+  if (bindings.ops_setxattr != NULL) delete bindings.ops_setxattr;
+  if (bindings.ops_getxattr != NULL) delete bindings.ops_getxattr;
+  if (bindings.ops_statfs != NULL) delete bindings.ops_statfs;
+  if (bindings.ops_open != NULL) delete bindings.ops_open;
+  if (bindings.ops_opendir != NULL) delete bindings.ops_opendir;
+  if (bindings.ops_read != NULL) delete bindings.ops_read;
+  if (bindings.ops_write != NULL) delete bindings.ops_write;
+  if (bindings.ops_release != NULL) delete bindings.ops_release;
+  if (bindings.ops_releasedir != NULL) delete bindings.ops_releasedir;
+  if (bindings.ops_create != NULL) delete bindings.ops_create;
+  if (bindings.ops_utimens != NULL) delete bindings.ops_utimens;
+  if (bindings.ops_unlink != NULL) delete bindings.ops_unlink;
+  if (bindings.ops_rename != NULL) delete bindings.ops_rename;
+  if (bindings.ops_link != NULL) delete bindings.ops_link;
+  if (bindings.ops_symlink != NULL) delete bindings.ops_symlink;
+  if (bindings.ops_mkdir != NULL) delete bindings.ops_mkdir;
+  if (bindings.ops_rmdir != NULL) delete bindings.ops_rmdir;
+  if (bindings.ops_init != NULL) delete bindings.ops_init;
+  if (bindings.ops_destroy != NULL) delete bindings.ops_destroy;
+
+  bindings.fuse = NULL;
+  bindings_in_use = 0;
 
   return NULL;
 }
@@ -867,7 +919,8 @@ NAN_METHOD(Mount) {
   if (bindings_in_use) return NanThrowError("Currently only a single filesystem can be mounted at the time");
   bindings_in_use = 1;
 
-  memset(&empty_stat, 0, sizeof(empty_stat)); // zero empty stat
+  memset(&empty_stat, 0, sizeof(empty_stat));
+  memset(&bindings, 0, sizeof(bindings));
 
   NanUtf8String path(args[0]);
   Local<Object> ops = args[1].As<Object>();
@@ -928,13 +981,6 @@ NAN_METHOD(Mount) {
   NanReturnUndefined();
 }
 
-NAN_METHOD(UnmountSync) {
-  NanScope();
-  NanUtf8String path(args[0]);
-  bindings_unmount(*path);
-  NanReturnUndefined();
-}
-
 class UnmountWorker : public NanAsyncWorker {
  public:
   UnmountWorker(NanCallback *callback, char *path)
@@ -979,7 +1025,6 @@ void Init(Handle<Object> exports) {
   exports->Set(NanNew("setBuffer"), NanNew<FunctionTemplate>(SetBuffer)->GetFunction());
   exports->Set(NanNew("mount"), NanNew<FunctionTemplate>(Mount)->GetFunction());
   exports->Set(NanNew("unmount"), NanNew<FunctionTemplate>(Unmount)->GetFunction());
-  exports->Set(NanNew("unmountSync"), NanNew<FunctionTemplate>(UnmountSync)->GetFunction());
 }
 
 NODE_MODULE(fuse_bindings, Init)

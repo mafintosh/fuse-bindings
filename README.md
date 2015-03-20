@@ -89,10 +89,6 @@ Pass the FUSE operations you want to support as the `ops` argument.
 
 Unmount a filesystem
 
-#### `fuse.unmountSync(mnt)`
-
-Unmount a filesystem synchroniously
-
 ## FUSE operations
 
 Most of the [FUSE api](http://fuse.sourceforge.net/doxygen/structfuse__operations.html) is supported.
