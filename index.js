@@ -1,10 +1,14 @@
 var bindings = require('bindings')
 var fuse = bindings('fuse_bindings')
 var fs = require('fs')
+var os = require('os')
 var path = require('path')
 
 var noop = function () {}
 var call = function (cb) { cb() }
+
+var MAC_FOLDER_ICON = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericFolderIcon.icns'
+var HAS_FOLDER_ICON = os.platform() === 'darwin' && fs.existsSync(MAC_FOLDER_ICON)
 
 var FuseBuffer = function () {
   this.length = 0
@@ -14,6 +18,9 @@ var FuseBuffer = function () {
 FuseBuffer.prototype = Buffer.prototype
 
 fuse.setBuffer(FuseBuffer)
+fuse.setCallback(function (index, callback) {
+  return callback.bind(null, index)
+})
 
 exports.mount = function (mnt, ops, cb) {
   if (!cb) cb = noop
@@ -22,11 +29,17 @@ exports.mount = function (mnt, ops, cb) {
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
   mnt = path.resolve(mnt)
 
+  if (ops.displayFolder) {
+    if (!ops.options) ops.options = []
+    ops.options.push('volname=' + path.basename(mnt))
+    if (HAS_FOLDER_ICON) ops.options.push('volicon=' + MAC_FOLDER_ICON)
+  }
+
   var callback = function (err) {
     callback = noop
     ops.init = init
     ops.error = error
-    process.nextTick(cb.bind(null, err))
+    setImmediate(cb.bind(null, err))
   }
 
   var init = ops.init || call
