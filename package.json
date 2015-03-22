@@ -4,7 +4,7 @@
   "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
   "main": "index.js",
   "scripts": {
-    "test": "standard"
+    "test": "standard && tape test/*.js"
   },
   "gypfile": true,
   "dependencies": {
@@ -13,7 +13,9 @@
     "xtend": "^4.0.0"
   },
   "devDependencies": {
-    "standard": "^3.2.0"
+    "concat-stream": "^1.4.7",
+    "standard": "^3.2.0",
+    "tape": "^3.5.0"
   },
   "repository": {
     "type": "git",
