@@ -154,13 +154,6 @@ NAN_INLINE static void semaphore_wait (sem_t *sem) {
 NAN_INLINE static void semaphore_signal (sem_t *sem) {
   sem_post(sem);
 }
-
-static void bindings_fusermount (char *path) {
-  char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
-  pid_t cpid = vfork();
-  if (cpid > 0) waitpid(cpid, NULL, 0);
-  else execvp(argv[0], argv);
-}
 #endif
 
 static bindings_t *bindings_find_mounted (char *path) {
@@ -173,15 +166,22 @@ static bindings_t *bindings_find_mounted (char *path) {
   return NULL;
 }
 
+static void bindings_fusermount (char *path) {
+#ifdef __APPLE__
+  char *argv[] = {(char *) "umount", path, NULL};
+#else
+  char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
+#endif
+  pid_t cpid = vfork();
+  if (cpid > 0) waitpid(cpid, NULL, 0);
+  else execvp(argv[0], argv);
+}
+
 static void bindings_unmount (char *path) {
   pthread_mutex_lock(&mutex);
   bindings_t *b = bindings_find_mounted(path);
   if (b != NULL) b->gc = 1;
-#ifdef __APPLE__
-  unmount(path, 0);
-#else
   bindings_fusermount(path);
-#endif
   if (b != NULL) pthread_join(b->thread, NULL);
   pthread_mutex_unlock(&mutex);
 }
