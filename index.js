@@ -2,6 +2,7 @@ var bindings = require('bindings')
 var fuse = bindings('fuse_bindings')
 var fs = require('fs')
 var os = require('os')
+var xtend = require('xtend')
 var path = require('path')
 
 var noop = function () {}
@@ -24,8 +25,8 @@ fuse.setCallback(function (index, callback) {
 
 exports.mount = function (mnt, ops, cb) {
   if (!cb) cb = noop
-  if (!ops) ops = {}
 
+  ops = xtend(ops) // clone
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
   mnt = path.resolve(mnt)
 
@@ -37,8 +38,6 @@ exports.mount = function (mnt, ops, cb) {
 
   var callback = function (err) {
     callback = noop
-    ops.init = init
-    ops.error = error
     setImmediate(cb.bind(null, err))
   }
 
@@ -52,6 +51,13 @@ exports.mount = function (mnt, ops, cb) {
   ops.error = function (next) {
     callback(new Error('Mount failed'))
     error(next)
+  }
+
+  if (!ops.getattr) { // we need this for unmount to work on osx
+    ops.getattr = function (path, cb) {
+      if (path !== '/') return cb(fuse.EPERM)
+      cb(null, {mtime: new Date(0), atime: new Date(0), ctime: new Date(0), mode: 16877, size: 4096})
+    }
   }
 
   var mount = function () {
