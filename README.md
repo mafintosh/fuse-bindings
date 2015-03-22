@@ -80,7 +80,7 @@ process.on('SIGINT', function () {
 
 ## API
 
-#### `fuse.mount(mnt, ops)`
+#### `fuse.mount(mnt, ops, [cb])`
 
 Mount a new filesystem on `mnt`.
 Pass the FUSE operations you want to support as the `ops` argument.
