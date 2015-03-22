@@ -62,11 +62,11 @@ static struct stat empty_stat;
 
 struct bindings_t {
   int index;
+  int gc;
 
   // fuse data
   char mnt[1024];
   char mntopts[1024];
-  struct fuse_chan *channel;
   pthread_t thread;
 #ifdef __APPLE__
   dispatch_semaphore_t semaphore;
@@ -163,36 +163,27 @@ static void bindings_fusermount (char *path) {
 }
 #endif
 
-static void bindings_unmount (char *path) {
-  bindings_t *b_mnt = NULL;
-  pthread_mutex_lock(&mutex);
+static bindings_t *bindings_find_mounted (char *path) {
   for (int i = 0; i < bindings_mounted_count; i++) {
     bindings_t *b = bindings_mounted[i];
-    if (b != NULL && b->channel != NULL && !strcmp(b->mnt, path)) {
-      b_mnt = b;
-      break;
+    if (b != NULL && !b->gc && !strcmp(b->mnt, path)) {
+      return b;
     }
   }
-  pthread_mutex_unlock(&mutex);
-  if (b_mnt) {
-    pthread_mutex_lock(&mutex);
-    struct fuse_chan *ch = b_mnt->channel;
-    b_mnt->channel = NULL;
-#ifdef __APPLE__
-    fuse_unmount(b_mnt->mnt, ch);
-#else
-    bindings_fusermount(path);
-#endif
-    pthread_mutex_unlock(&mutex);
-    pthread_join(b_mnt->thread, NULL);
-    return;
-  }
+  return NULL;
+}
 
+static void bindings_unmount (char *path) {
+  pthread_mutex_lock(&mutex);
+  bindings_t *b = bindings_find_mounted(path);
+  if (b != NULL) b->gc = 1;
 #ifdef __APPLE__
   unmount(path, 0);
 #else
   bindings_fusermount(path);
 #endif
+  if (b != NULL) pthread_join(b->thread, NULL);
+  pthread_mutex_unlock(&mutex);
 }
 
 
@@ -573,9 +564,7 @@ static void bindings_destroy (void *data) {
   bindings_call(b);
 }
 
-static void bindings_on_close (uv_handle_t *handle) {
-  bindings_t *b = (bindings_t *) handle->data;
-
+static void bindings_free (bindings_t *b) {
   if (b->ops_access != NULL) delete b->ops_access;
   if (b->ops_truncate != NULL) delete b->ops_truncate;
   if (b->ops_ftruncate != NULL) delete b->ops_ftruncate;
@@ -609,7 +598,18 @@ static void bindings_on_close (uv_handle_t *handle) {
   if (b->ops_destroy != NULL) delete b->ops_destroy;
   if (b->callback != NULL) delete b->callback;
 
+  bindings_mounted[b->index] = NULL;
+  while (bindings_mounted_count > 0 && bindings_mounted[bindings_mounted_count - 1] == NULL) {
+    bindings_mounted_count--;
+  }
+
   free(b);
+}
+
+static void bindings_on_close (uv_handle_t *handle) {
+  pthread_mutex_lock(&mutex);
+  bindings_free((bindings_t *) handle->data);
+  pthread_mutex_unlock(&mutex);
 }
 
 static void *bindings_thread (void *data) {
@@ -658,10 +658,6 @@ static void *bindings_thread (void *data) {
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
   struct fuse_chan *ch = fuse_mount(b->mnt, &args);
 
-  pthread_mutex_lock(&mutex);
-  b->channel = ch;
-  pthread_mutex_unlock(&mutex);
-
   if (ch == NULL) {
     b->op = OP_ERROR;
     bindings_call(b);
@@ -669,8 +665,7 @@ static void *bindings_thread (void *data) {
     return NULL;
   }
 
-  int ops_size = sizeof(struct fuse_operations);
-  struct fuse *fuse = fuse_new(ch, &args, &ops, ops_size, b);
+  struct fuse *fuse = fuse_new(ch, &args, &ops, sizeof(struct fuse_operations), b);
 
   if (fuse == NULL) {
     b->op = OP_ERROR;
@@ -681,16 +676,9 @@ static void *bindings_thread (void *data) {
 
   fuse_loop(fuse);
 
-  pthread_mutex_lock(&mutex);
-  b->channel = NULL;
-  if (bindings_mounted[b->index] == b) bindings_mounted[b->index] = NULL;
-  while (bindings_mounted_count > 0 && bindings_mounted[bindings_mounted_count - 1] == NULL) {
-    bindings_mounted_count--;
-  }
-
+  fuse_unmount(b->mnt, ch);
   fuse_session_remove_chan(ch);
   fuse_destroy(fuse);
-  pthread_mutex_unlock(&mutex);
 
   uv_close((uv_handle_t*) &(b->async), &bindings_on_close);
 
