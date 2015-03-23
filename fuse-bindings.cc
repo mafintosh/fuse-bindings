@@ -746,7 +746,7 @@ NAN_METHOD(OpCallback) {
   NanScope();
 
   bindings_t *b = bindings_mounted[args[0]->Uint32Value()];
-  b->result = args[1]->Uint32Value();
+  b->result = (args.Length() > 1 && args[1]->IsNumber()) ? args[1]->Uint32Value() : 0;
 
   if (!b->result) {
     switch (b->op) {
