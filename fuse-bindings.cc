@@ -685,6 +685,11 @@ static void *bindings_thread (void *data) {
   return NULL;
 }
 
+NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
+  int ms = (out->tv_nsec / 1000);
+  return NanNew<Date>(out->tv_sec * 1000 + ms);
+}
+
 NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date) {
   double ms = date->NumberValue();
   time_t secs = (time_t)(ms / 1000.0);
@@ -714,11 +719,6 @@ NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) 
   if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(NanNew("ctime")).As<Date>());
   if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atim, obj->Get(NanNew("atime")).As<Date>());
 #endif
-}
-
-NAN_INLINE static void bindings_set_utimens (struct timespec tv[2], Local<Object> obj) {
-  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&tv[0], obj->Get(NanNew("atime")).As<Date>());
-  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&tv[1], obj->Get(NanNew("mtime")).As<Date>());
 }
 
 NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object> obj) { // from http://linux.die.net/man/2/stat
@@ -775,11 +775,6 @@ NAN_METHOD(OpCallback) {
       }
       break;
 
-      case OP_UTIMENS: {
-        if (args.Length() > 2 && args[2]->IsObject()) bindings_set_utimens((struct timespec *) b->data, args[2].As<Object>());
-      }
-      break;
-
       case OP_READLINK: {
         if (args.Length() > 2 && args[2]->IsString()) {
           NanUtf8String path(args[2]);
@@ -801,6 +796,7 @@ NAN_METHOD(OpCallback) {
       case OP_SETXATTR:
       case OP_GETXATTR:
       case OP_READ:
+      case OP_UTIMENS:
       case OP_WRITE:
       case OP_RELEASE:
       case OP_RELEASEDIR:
@@ -1028,8 +1024,9 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_UTIMENS: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
-      bindings_call_op(b, b->ops_utimens, 2, tmp);
+      struct timespec *tv = (struct timespec *) b->data;
+      Local<Value> tmp[] = {NanNew<String>(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
+      bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
     return;
 
