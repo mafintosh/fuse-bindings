@@ -89,51 +89,231 @@ Pass the FUSE operations you want to support as the `ops` argument.
 
 Unmount a filesystem
 
+## Mount options
+
+#### `ops.options`
+
+Set [mount options](http://blog.woralelandia.com/2012/07/16/fuse-mount-options/)
+
+``` js
+ops.options = ['direct_io'] // set the direct_io option
+```
+
+#### `ops.displayFolder`
+
+Set to `true` to make OSX display a folder icon and the folder name as the mount point in finder
+
+#### `ops.force`
+
+Set to `true` to force mount the filesystem (will do an unmount first)
+
 ## FUSE operations
 
-Most of the [FUSE api](http://fuse.sourceforge.net/doxygen/structfuse__operations.html) is supported.
+Most of the [FUSE api](http://fuse.sourceforge.net/doxygen/structfuse__operations.html) is supported. In general the callback for each op should be called with `cb(returnCode, [value])` where the return code is a number (`0` for OK and `< 0` for errors). See below for a list of POSIX error codes.
 
-* `ops.init(cb)`
-* `ops.access(path, cb)`
-* `ops.statfs(path, cb)`
-* `ops.getattr(path, cb)`
-* `ops.fgetattr(path, fd, cb)`
-* `ops.flush(path, fd, cb)`
-* `ops.fsync(path, fd, cb)`
-* `ops.fsyncdir(path, fd, cb)`
-* `ops.readdir(path, cb)`
-* `ops.truncate(path, size, cb)`
-* `ops.ftruncate(path, fd, size, cb)`
-* `ops.readlink(path, result, cb)`
-* `ops.chown(path, uid, gid, cb)`
-* `ops.chmod(path, mode, cb)`
-* `ops.setxattr(path, name, buf, length, offset, flags, cb)`
-* `ops.getxattr(path, name, buf, length, offset, cb)`
-* `ops.open(path, flags, cb)`
-* `ops.opendir(path, flags, cb)`
-* `ops.read(path, fd, buf, length, position, cb)`
-* `ops.write(path, fd, buf, length, position, cb)`
-* `ops.release(path, fd, cb)`
-* `ops.releasedir(path, fd, cb)`
-* `ops.create(path, mode, cb)`
-* `ops.utimens(path, cb)`
-* `ops.unlink(path, cb)`
-* `ops.rename(src, dest, cb)`
-* `ops.link(src, dest, cb)`
-* `ops.symlink(src, dest, cb)`
-* `ops.mkdir(path, cb)`
-* `ops.rmdir(path, cb)`
-* `ops.destroy(cb)`
+#### `ops.init(cb)`
 
-The goal is to support 100% of the API.
+Called on filesystem init.
 
-When using `getattr` you should return a stat object after the status code,
-`readdir` expects an array of directory names, `open` an optional fd and
-`utimens` an object with `mtime` and `atime` dates.
+#### `ops.access(path, cb)`
+
+Called before the filesystem accessed a file
+
+#### `ops.statfs(path, cb)`
+
+Called when the filesystem is being stat'ed. Accepts a fs stat object after the return code in the callback.
+
+``` js
+ops.statfs = function (path, cb) {
+  cb(0, {
+    bsize: 1000000,
+    frsize: 1000000,
+    blocks: 1000000,
+    bfree: 1000000,
+    bavail: 1000000,
+    files: 1000000,
+    ffree: 1000000,
+    favail: 1000000,
+    fsid: 1000000,
+    flag: 1000000,
+    namemax: 1000000
+  })
+}
+```
+
+#### `ops.getattr(path, cb)`
+
+Called when a path is being stat'ed. Accepts a stat object (similar to the one returned in `fs.stat(path, cb)`) after the return code in the callback.
+
+``` js
+ops.getattr = function (path, cb) {
+  cb(0, {
+    mtime: new Date(),
+    atime: new Date(),
+    ctime: new Date(),
+    size: 100,
+    mode: 16877,
+    uid: process.getuid(),
+    gid: process.getgid()
+  })
+}
+```
+
+#### `ops.fgetattr(path, fd, cb)`
+
+Same as above but is called when someone stats a file descriptor
+
+#### `ops.flush(path, fd, cb)`
+
+Called when a file descriptor is being flushed
+
+#### `ops.fsync(path, fd, cb)`
+
+Called when a file descriptor is being fsync'ed.
+
+#### `ops.fsyncdir(path, fd, cb)`
+
+Same as above but on a directory
+
+#### `ops.readdir(path, cb)`
+
+Called when a directory is being listed. Accepts an array of file/directory names after the return code in the callback
+
+``` js
+ops.readdir = function (path, cb) {
+  cb(0, ['file-1.txt', 'dir'])
+}
+```
+
+#### `ops.truncate(path, size, cb)`
+
+Called when a path is being truncated to a specific size
+
+#### `ops.ftruncate(path, fd, size, cb)`
+
+Same as above but on a file descriptor
+
+#### `ops.readlink(path, cb)`
+
+Called when a symlink is being resolved. Accepts a pathname (that the link should resolve to) after the return code in the callback
+
+``` js
+ops.readlink = function (path, cb) {
+  cb(null, 'file.txt') // make link point to file.txt
+}
+```
+
+#### `ops.chown(path, uid, gid, cb)`
+
+Called when ownership of a path is being changed
+
+#### `ops.chmod(path, mode, cb)`
+
+Called when the mode of a path is being changed
+
+#### `ops.setxattr(path, name, buffer, length, offset, flags, cb)`
+
+Called when extended attributes is being set (see the extended docs for your platform).
+Currently you can read the attribute value being set in `buffer` at `offset`.
+
+#### `ops.getxattr(path, name, buffer, length, offset, cb)`
+
+Called when extended attributes is being read.
+Currently you have to write the result to the provided `buffer` at `offset`.
+
+#### `ops.open(path, flags, cb)`
+
+Called when a path is being opened. `flags` in a number containing the permissions being requested. Accepts a file descriptor after the return code in the callback.
+
+``` js
+var toFlag = function(flags) {
+  flags = flags & 3
+  if (flags === 0) return 'r'
+  if (flags === 1) return 'w'
+  return 'r+'
+}
+
+ops.open = function (path, flags, cb) {
+  var flag = toFlag(flags) // convert flags to a node style string
+  ...
+  cb(0, 42) // 42 is a file descriptor
+}
+```
+
+#### `ops.opendir(path, flags, cb)`
+
+Same as above but for directories
+
+#### `ops.read(path, fd, buffer, length, position, cb)`
+
+Called when contents of a file is being read. You should write the result of the read to the `buffer` and return the number of bytes written as the first argument in the callback.
+If no bytes were written (read is complete) return 0 in the callback.
+
+``` js
+var data = new Buffer('hello world')
+
+ops.read = function (path, fd, buffer, length, position, cb) {
+  if (position >= data.length) return cb(0) // done
+  var part = data.slice(position, position + length)
+  part.copy(buffer) // write the result of the read to the result buffer
+  cb(part.length) // return the number of bytes read
+}
+```
+
+#### `ops.write(path, fd, buffer, length, position, cb)`
+
+Called when a file is being written to. You can get the data being written in `buffer` and you should return the number of bytes written in the callback as the first argument.
+
+``` js
+ops.write = function (path, fd, buffer, length, position, cb) {
+  console.log('writing', buffer.slice(0, length))
+  cb(length) // we handled all the data
+}
+```
+
+#### `ops.release(path, fd, cb)`
+
+Called when a file descriptor is being released. Happens when a read/write is done etc.
+
+#### `ops.releasedir(path, fd, cb)`
+
+Same as above but for directories
+
+#### `ops.create(path, mode, cb)`
+
+Called when a new file is being opened.
+
+#### `ops.utimens(path, atime, mtime, cb)`
+
+Called when the atime/mtime of a file is being changed.
+
+#### `ops.unlink(path, cb)`
+
+Called when a file is being unlinked.
+
+#### `ops.rename(src, dest, cb)`
+
+Called when a file is being renamed.
+
+#### `ops.link(src, dest, cb)`
+
+Called when a new link is created.
+
+#### `ops.symlink(src, dest, cb)`
+
+Called when a new symlink is created
+
+#### `ops.mkdir(path, cb)`
+
+Called when a new directory is being created
+
+#### `ops.rmdir(path, cb)`
+
+Called when a directory is being removed
+
+#### `ops.destroy(cb)`
 
 Both `read` and `write` passes the underlying fuse buffer without copying them to be as fast as possible.
-
-You can pass [mount options](http://blog.woralelandia.com/2012/07/16/fuse-mount-options/) (i.e. `direct_io` etc) as `ops.options = ['direct_io']`
 
 ## Error codes
 
