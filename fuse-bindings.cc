@@ -742,10 +742,6 @@ NAN_INLINE static void bindings_set_dirs (bindings_t *b, Local<Array> dirs) {
   }
 }
 
-NAN_INLINE static void bindings_set_fd (bindings_t *b, Local<Number> fd) {
-  b->info->fh = fd->Uint32Value();
-}
-
 NAN_METHOD(OpCallback) {
   NanScope();
 
@@ -773,12 +769,22 @@ NAN_METHOD(OpCallback) {
       case OP_CREATE:
       case OP_OPEN:
       case OP_OPENDIR: {
-        if (args.Length() > 2 && args[2]->IsNumber()) bindings_set_fd(b, args[2].As<Number>());
+        if (args.Length() > 2 && args[2]->IsNumber()) {
+          b->info->fh = args[2].As<Number>()->Uint32Value();
+        }
       }
       break;
 
       case OP_UTIMENS: {
         if (args.Length() > 2 && args[2]->IsObject()) bindings_set_utimens((struct timespec *) b->data, args[2].As<Object>());
+      }
+      break;
+
+      case OP_READLINK: {
+        if (args.Length() > 2 && args[2]->IsString()) {
+          NanUtf8String path(args[2]);
+          stpcpy((char *) b->data, *path);
+        }
       }
       break;
 
@@ -790,7 +796,6 @@ NAN_METHOD(OpCallback) {
       case OP_FSYNCDIR:
       case OP_TRUNCATE:
       case OP_FTRUNCATE:
-      case OP_READLINK:
       case OP_CHOWN:
       case OP_CHMOD:
       case OP_SETXATTR:
@@ -972,13 +977,8 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_READLINK: {
-      Local<Value> tmp[] = {
-        NanNew<String>(b->path),
-        bindings_buffer((char *) b->data, b->length),
-        NanNew<Number>(b->length),
-        callback
-      };
-      bindings_call_op(b, b->ops_readlink, 4, tmp);
+      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      bindings_call_op(b, b->ops_readlink, 2, tmp);
     }
     return;
 
