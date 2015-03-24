@@ -79,6 +79,10 @@ exports.unmount = function (mnt, cb) {
   fuse.unmount(path.resolve(mnt), cb || noop)
 }
 
+exports.errno = function (code) {
+  return exports[code.toUpperCase()] || -1
+}
+
 exports.EPERM = -1
 exports.ENOENT = -2
 exports.ESRCH = -3
