@@ -304,7 +304,7 @@ Called when a new link is created.
 
 Called when a new symlink is created
 
-#### `ops.mkdir(path, cb)`
+#### `ops.mkdir(path, mode, cb)`
 
 Called when a new directory is being created
 
