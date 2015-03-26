@@ -8,8 +8,9 @@ var path = require('path')
 var noop = function () {}
 var call = function (cb) { cb() }
 
-var MAC_FOLDER_ICON = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericFolderIcon.icns'
-var HAS_FOLDER_ICON = os.platform() === 'darwin' && fs.existsSync(MAC_FOLDER_ICON)
+var IS_OSX = os.platform() === 'darwin'
+var OSX_FOLDER_ICON = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericFolderIcon.icns'
+var HAS_FOLDER_ICON = IS_OSX && fs.existsSync(OSX_FOLDER_ICON)
 
 var FuseBuffer = function () {
   this.length = 0
@@ -30,10 +31,10 @@ exports.mount = function (mnt, ops, cb) {
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
   mnt = path.resolve(mnt)
 
-  if (ops.displayFolder) {
+  if (ops.displayFolder && IS_OSX) { // only works on osx
     if (!ops.options) ops.options = []
     ops.options.push('volname=' + path.basename(mnt))
-    if (HAS_FOLDER_ICON) ops.options.push('volicon=' + MAC_FOLDER_ICON)
+    if (HAS_FOLDER_ICON) ops.options.push('volicon=' + OSX_FOLDER_ICON)
   }
 
   var callback = function (err) {
