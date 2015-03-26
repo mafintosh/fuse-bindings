@@ -1,6 +1,6 @@
 {
   "name": "fuse-bindings",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
   "main": "index.js",
   "scripts": {
