@@ -9,7 +9,7 @@
       ],
       "link_settings": {
         "libraries": [
-          "<!@(pkg-config --libs-only-l fuse)"
+          "<!@(pkg-config --libs-only-L --libs-only-l fuse)"
         ]
       }
     }
