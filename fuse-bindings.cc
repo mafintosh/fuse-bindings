@@ -821,6 +821,8 @@ NAN_INLINE static void bindings_call_op (bindings_t *b, NanCallback *fn, int arg
 }
 
 static void bindings_dispatch (uv_async_t* handle, int status) {
+  NanScope();
+
   bindings_t *b = (bindings_t *) handle->data;
   Local<Function> callback = b->callback->GetFunction();
   b->result = -1;
