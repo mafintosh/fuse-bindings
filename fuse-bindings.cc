@@ -64,6 +64,11 @@ struct bindings_t {
   int index;
   int gc;
 
+  // fuse context
+  int context_uid;
+  int context_gid;
+  int context_pid;
+
   // fuse data
   char mnt[1024];
   char mntopts[1024];
@@ -128,6 +133,7 @@ struct bindings_t {
 
 static bindings_t *bindings_mounted[1024];
 static int bindings_mounted_count = 0;
+static bindings_t *bindings_current = NULL;
 
 #ifdef __APPLE__
 NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
@@ -207,8 +213,17 @@ NAN_INLINE static int bindings_call (bindings_t *b) {
   return b->result;
 }
 
+static bindings_t *bindings_get_context () {
+  fuse_context *ctx = fuse_get_context();
+  bindings_t *b = (bindings_t *) ctx->private_data;
+  b->context_pid = ctx->pid;
+  b->context_uid = ctx->uid;
+  b->context_gid = ctx->gid;
+  return b;
+}
+
 static int bindings_truncate (const char *path, off_t size) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_TRUNCATE;
   b->path = (char *) path;
@@ -218,7 +233,7 @@ static int bindings_truncate (const char *path, off_t size) {
 }
 
 static int bindings_ftruncate (const char *path, off_t size, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_FTRUNCATE;
   b->path = (char *) path;
@@ -229,7 +244,7 @@ static int bindings_ftruncate (const char *path, off_t size, struct fuse_file_in
 }
 
 static int bindings_getattr (const char *path, struct stat *stat) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_GETATTR;
   b->path = (char *) path;
@@ -239,7 +254,7 @@ static int bindings_getattr (const char *path, struct stat *stat) {
 }
 
 static int bindings_fgetattr (const char *path, struct stat *stat, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_FGETATTR;
   b->path = (char *) path;
@@ -250,7 +265,7 @@ static int bindings_fgetattr (const char *path, struct stat *stat, struct fuse_f
 }
 
 static int bindings_flush (const char *path, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_FLUSH;
   b->path = (char *) path;
@@ -260,7 +275,7 @@ static int bindings_flush (const char *path, struct fuse_file_info *info) {
 }
 
 static int bindings_fsync (const char *path, int datasync, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_FSYNC;
   b->path = (char *) path;
@@ -271,7 +286,7 @@ static int bindings_fsync (const char *path, int datasync, struct fuse_file_info
 }
 
 static int bindings_fsyncdir (const char *path, int datasync, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_FSYNCDIR;
   b->path = (char *) path;
@@ -282,7 +297,7 @@ static int bindings_fsyncdir (const char *path, int datasync, struct fuse_file_i
 }
 
 static int bindings_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_READDIR;
   b->path = (char *) path;
@@ -293,7 +308,7 @@ static int bindings_readdir (const char *path, void *buf, fuse_fill_dir_t filler
 }
 
 static int bindings_readlink (const char *path, char *buf, size_t len) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_READLINK;
   b->path = (char *) path;
@@ -304,7 +319,7 @@ static int bindings_readlink (const char *path, char *buf, size_t len) {
 }
 
 static int bindings_chown (const char *path, uid_t uid, gid_t gid) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_CHOWN;
   b->path = (char *) path;
@@ -315,7 +330,7 @@ static int bindings_chown (const char *path, uid_t uid, gid_t gid) {
 }
 
 static int bindings_chmod (const char *path, mode_t mode) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_CHMOD;
   b->path = (char *) path;
@@ -326,7 +341,7 @@ static int bindings_chmod (const char *path, mode_t mode) {
 
 #ifdef __APPLE__
 static int bindings_setxattr (const char *path, const char *name, const char *value, size_t size, int flags, uint32_t position) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_SETXATTR;
   b->path = (char *) path;
@@ -340,7 +355,7 @@ static int bindings_setxattr (const char *path, const char *name, const char *va
 }
 
 static int bindings_getxattr (const char *path, const char *name, char *value, size_t size, uint32_t position) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_GETXATTR;
   b->path = (char *) path;
@@ -353,7 +368,7 @@ static int bindings_getxattr (const char *path, const char *name, char *value, s
 }
 #else
 static int bindings_setxattr (const char *path, const char *name, const char *value, size_t size, int flags) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_SETXATTR;
   b->path = (char *) path;
@@ -367,7 +382,7 @@ static int bindings_setxattr (const char *path, const char *name, const char *va
 }
 
 static int bindings_getxattr (const char *path, const char *name, char *value, size_t size) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_GETXATTR;
   b->path = (char *) path;
@@ -381,7 +396,7 @@ static int bindings_getxattr (const char *path, const char *name, char *value, s
 #endif
 
 static int bindings_statfs (const char *path, struct statvfs *statfs) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_STATFS;
   b->path = (char *) path;
@@ -391,7 +406,7 @@ static int bindings_statfs (const char *path, struct statvfs *statfs) {
 }
 
 static int bindings_open (const char *path, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_OPEN;
   b->path = (char *) path;
@@ -402,7 +417,7 @@ static int bindings_open (const char *path, struct fuse_file_info *info) {
 }
 
 static int bindings_opendir (const char *path, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_OPENDIR;
   b->path = (char *) path;
@@ -413,7 +428,7 @@ static int bindings_opendir (const char *path, struct fuse_file_info *info) {
 }
 
 static int bindings_read (const char *path, char *buf, size_t len, off_t offset, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_READ;
   b->path = (char *) path;
@@ -426,7 +441,7 @@ static int bindings_read (const char *path, char *buf, size_t len, off_t offset,
 }
 
 static int bindings_write (const char *path, const char *buf, size_t len, off_t offset, struct fuse_file_info * info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_WRITE;
   b->path = (char *) path;
@@ -439,7 +454,7 @@ static int bindings_write (const char *path, const char *buf, size_t len, off_t 
 }
 
 static int bindings_release (const char *path, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_RELEASE;
   b->path = (char *) path;
@@ -449,7 +464,7 @@ static int bindings_release (const char *path, struct fuse_file_info *info) {
 }
 
 static int bindings_releasedir (const char *path, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_RELEASEDIR;
   b->path = (char *) path;
@@ -459,7 +474,7 @@ static int bindings_releasedir (const char *path, struct fuse_file_info *info) {
 }
 
 static int bindings_access (const char *path, int mode) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_ACCESS;
   b->path = (char *) path;
@@ -469,7 +484,7 @@ static int bindings_access (const char *path, int mode) {
 }
 
 static int bindings_create (const char *path, mode_t mode, struct fuse_file_info *info) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_CREATE;
   b->path = (char *) path;
@@ -480,7 +495,7 @@ static int bindings_create (const char *path, mode_t mode, struct fuse_file_info
 }
 
 static int bindings_utimens (const char *path, const struct timespec tv[2]) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_UTIMENS;
   b->path = (char *) path;
@@ -490,7 +505,7 @@ static int bindings_utimens (const char *path, const struct timespec tv[2]) {
 }
 
 static int bindings_unlink (const char *path) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_UNLINK;
   b->path = (char *) path;
@@ -499,7 +514,7 @@ static int bindings_unlink (const char *path) {
 }
 
 static int bindings_rename (const char *src, const char *dest) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_RENAME;
   b->path = (char *) src;
@@ -509,7 +524,7 @@ static int bindings_rename (const char *src, const char *dest) {
 }
 
 static int bindings_link (const char *path, const char *dest) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_LINK;
   b->path = (char *) path;
@@ -519,7 +534,7 @@ static int bindings_link (const char *path, const char *dest) {
 }
 
 static int bindings_symlink (const char *path, const char *dest) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_SYMLINK;
   b->path = (char *) path;
@@ -529,7 +544,7 @@ static int bindings_symlink (const char *path, const char *dest) {
 }
 
 static int bindings_mkdir (const char *path, mode_t mode) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_MKDIR;
   b->path = (char *) path;
@@ -539,7 +554,7 @@ static int bindings_mkdir (const char *path, mode_t mode) {
 }
 
 static int bindings_rmdir (const char *path) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_RMDIR;
   b->path = (char *) path;
@@ -548,7 +563,7 @@ static int bindings_rmdir (const char *path) {
 }
 
 static void* bindings_init (struct fuse_conn_info *conn) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_INIT;
 
@@ -557,7 +572,7 @@ static void* bindings_init (struct fuse_conn_info *conn) {
 }
 
 static void bindings_destroy (void *data) {
-  bindings_t *b = (bindings_t *) fuse_get_context()->private_data;
+  bindings_t *b = bindings_get_context();
 
   b->op = OP_DESTROY;
 
@@ -747,6 +762,7 @@ NAN_METHOD(OpCallback) {
 
   bindings_t *b = bindings_mounted[args[0]->Uint32Value()];
   b->result = (args.Length() > 1 && args[1]->IsNumber()) ? args[1]->Uint32Value() : 0;
+  bindings_current = NULL;
 
   if (!b->result) {
     switch (b->op) {
@@ -823,7 +839,7 @@ NAN_INLINE static void bindings_call_op (bindings_t *b, NanCallback *fn, int arg
 static void bindings_dispatch (uv_async_t* handle, int status) {
   NanScope();
 
-  bindings_t *b = (bindings_t *) handle->data;
+  bindings_t *b = bindings_current = (bindings_t *) handle->data;
   Local<Function> callback = b->callback->GetFunction();
   b->result = -1;
 
@@ -1187,6 +1203,18 @@ NAN_METHOD(SetBuffer) {
   NanReturnUndefined();
 }
 
+NAN_METHOD(PopulateContext) {
+  NanScope();
+  if (bindings_current == NULL) return NanThrowError("You have to call this inside a fuse operation");
+
+  Local<Object> ctx = args[0].As<Object>();
+  ctx->Set(NanNew<String>("uid"), NanNew(bindings_current->context_uid));
+  ctx->Set(NanNew<String>("gid"), NanNew(bindings_current->context_gid));
+  ctx->Set(NanNew<String>("pid"), NanNew(bindings_current->context_pid));
+
+  NanReturnUndefined();
+}
+
 NAN_METHOD(Unmount) {
   NanScope();
 
@@ -1206,6 +1234,7 @@ void Init(Handle<Object> exports) {
   exports->Set(NanNew("setBuffer"), NanNew<FunctionTemplate>(SetBuffer)->GetFunction());
   exports->Set(NanNew("mount"), NanNew<FunctionTemplate>(Mount)->GetFunction());
   exports->Set(NanNew("unmount"), NanNew<FunctionTemplate>(Unmount)->GetFunction());
+  exports->Set(NanNew("populateContext"), NanNew<FunctionTemplate>(PopulateContext)->GetFunction());
 }
 
 NODE_MODULE(fuse_bindings, Init)

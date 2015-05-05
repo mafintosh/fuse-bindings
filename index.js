@@ -24,6 +24,12 @@ fuse.setCallback(function (index, callback) {
   return callback.bind(null, index)
 })
 
+exports.context = function () {
+  var ctx = {}
+  fuse.populateContext(ctx)
+  return ctx
+}
+
 exports.mount = function (mnt, ops, cb) {
   if (!cb) cb = noop
 

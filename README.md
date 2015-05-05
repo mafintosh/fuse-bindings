@@ -90,6 +90,11 @@ Pass the FUSE operations you want to support as the `ops` argument.
 
 Unmount a filesystem
 
+#### `fuse.context()`
+
+Returns the current fuse context (pid, uid, gid).
+Must be called inside a fuse callback.
+
 ## Mount options
 
 #### `ops.options`
