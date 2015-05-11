@@ -121,7 +121,7 @@ Most of the [FUSE api](http://fuse.sourceforge.net/doxygen/structfuse__operation
 
 Called on filesystem init.
 
-#### `ops.access(path, cb)`
+#### `ops.access(path, mode, cb)`
 
 Called before the filesystem accessed a file
 
