@@ -83,7 +83,16 @@ exports.mount = function (mnt, ops, cb) {
 }
 
 exports.unmount = function (mnt, cb) {
-  fuse.unmount(path.resolve(mnt), cb || noop)
+  var timeout = setTimeout(function () {
+    var err = new Error('Unmount took too long')
+    err.code = 'ETIMEDOUT'
+    if (cb) cb(err)
+  }, 2000)
+
+  fuse.unmount(path.resolve(mnt), function (err) {
+    clearTimeout(timeout)
+    if (cb) cb(err)
+  })
 }
 
 exports.errno = function (code) {
