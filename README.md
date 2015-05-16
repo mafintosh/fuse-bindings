@@ -217,6 +217,10 @@ Called when ownership of a path is being changed
 
 Called when the mode of a path is being changed
 
+#### `ops.mknod(path, mode, dev, cb)`
+
+Called when the a new device file is being made.
+
 #### `ops.setxattr(path, name, buffer, length, offset, flags, cb)`
 
 Called when extended attributes is being set (see the extended docs for your platform).

@@ -37,6 +37,7 @@ enum bindings_ops_t {
   OP_READLINK,
   OP_CHOWN,
   OP_CHMOD,
+  OP_MKNOD,
   OP_SETXATTR,
   OP_GETXATTR,
   OP_OPEN,
@@ -96,6 +97,7 @@ struct bindings_t {
   NanCallback *ops_readlink;
   NanCallback *ops_chown;
   NanCallback *ops_chmod;
+  NanCallback *ops_mknod;
   NanCallback *ops_setxattr;
   NanCallback *ops_getxattr;
   NanCallback *ops_open;
@@ -126,6 +128,7 @@ struct bindings_t {
   off_t length;
   void *data; // various structs
   int mode;
+  int dev;
   int uid;
   int gid;
   int result;
@@ -220,6 +223,17 @@ static bindings_t *bindings_get_context () {
   b->context_uid = ctx->uid;
   b->context_gid = ctx->gid;
   return b;
+}
+
+static int bindings_mknod (const char *path, mode_t mode, dev_t dev) {
+  bindings_t *b = bindings_get_context();
+
+  b->op = OP_MKNOD;
+  b->path = (char *) path;
+  b->mode = mode;
+  b->dev = dev;
+
+  return bindings_call(b);
 }
 
 static int bindings_truncate (const char *path, off_t size) {
@@ -592,6 +606,7 @@ static void bindings_free (bindings_t *b) {
   if (b->ops_readlink != NULL) delete b->ops_readlink;
   if (b->ops_chown != NULL) delete b->ops_chown;
   if (b->ops_chmod != NULL) delete b->ops_chmod;
+  if (b->ops_mknod != NULL) delete b->ops_mknod;
   if (b->ops_setxattr != NULL) delete b->ops_setxattr;
   if (b->ops_getxattr != NULL) delete b->ops_getxattr;
   if (b->ops_statfs != NULL) delete b->ops_statfs;
@@ -644,6 +659,7 @@ static void *bindings_thread (void *data) {
   if (b->ops_readlink != NULL) ops.readlink = bindings_readlink;
   if (b->ops_chown != NULL) ops.chown = bindings_chown;
   if (b->ops_chmod != NULL) ops.chmod = bindings_chmod;
+  if (b->ops_mknod != NULL) ops.mknod = bindings_mknod;
   if (b->ops_setxattr != NULL) ops.setxattr = bindings_setxattr;
   if (b->ops_getxattr != NULL) ops.getxattr = bindings_getxattr;
   if (b->ops_statfs != NULL) ops.statfs = bindings_statfs;
@@ -809,6 +825,7 @@ NAN_METHOD(OpCallback) {
       case OP_FTRUNCATE:
       case OP_CHOWN:
       case OP_CHMOD:
+      case OP_MKNOD:
       case OP_SETXATTR:
       case OP_GETXATTR:
       case OP_READ:
@@ -984,6 +1001,12 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     }
     return;
 
+    case OP_MKNOD: {
+      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), NanNew<Number>(b->dev), callback};
+      bindings_call_op(b, b->ops_mknod, 4, tmp);
+    }
+    return;
+
     case OP_CHOWN: {
       Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->uid), NanNew<Number>(b->gid), callback};
       bindings_call_op(b, b->ops_chown, 4, tmp);
@@ -1127,6 +1150,7 @@ NAN_METHOD(Mount) {
   b->ops_readlink = ops->Has(NanNew<String>("readlink")) ? new NanCallback(ops->Get(NanNew<String>("readlink")).As<Function>()) : NULL;
   b->ops_chown = ops->Has(NanNew<String>("chown")) ? new NanCallback(ops->Get(NanNew<String>("chown")).As<Function>()) : NULL;
   b->ops_chmod = ops->Has(NanNew<String>("chmod")) ? new NanCallback(ops->Get(NanNew<String>("chmod")).As<Function>()) : NULL;
+  b->ops_mknod = ops->Has(NanNew<String>("mknod")) ? new NanCallback(ops->Get(NanNew<String>("mknod")).As<Function>()) : NULL;
   b->ops_setxattr = ops->Has(NanNew<String>("setxattr")) ? new NanCallback(ops->Get(NanNew<String>("setxattr")).As<Function>()) : NULL;
   b->ops_getxattr = ops->Has(NanNew<String>("getxattr")) ? new NanCallback(ops->Get(NanNew<String>("getxattr")).As<Function>()) : NULL;
   b->ops_open = ops->Has(NanNew<String>("open")) ? new NanCallback(ops->Get(NanNew<String>("open")).As<Function>()) : NULL;
