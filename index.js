@@ -96,7 +96,7 @@ exports.unmount = function (mnt, cb) {
 }
 
 exports.errno = function (code) {
-  return exports[code.toUpperCase()] || -1
+  return (code && exports[code.toUpperCase()]) || -1
 }
 
 exports.EPERM = -1
