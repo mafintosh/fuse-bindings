@@ -904,13 +904,13 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_TRUNCATE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->offset), callback};
+      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->length), callback};
       bindings_call_op(b, b->ops_truncate, 3, tmp);
     }
     return;
 
     case OP_FTRUNCATE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), NanNew<Number>(b->offset), callback};
+      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), NanNew<Number>(b->length), callback};
       bindings_call_op(b, b->ops_ftruncate, 4, tmp);
     }
     return;
