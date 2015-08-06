@@ -37,8 +37,23 @@ void thread_join (HANDLE thread) {
     WaitForSingleObject(thread, INFINITE);
 }
 
+#include <iostream>
+
 void fusermount (char *path) {
-    // TODO
+    char cmdLine[MAX_PATH];
+    sprintf(cmdLine, "dokanctl.exe /u %s", path);
+
+    STARTUPINFO info = {sizeof(info)};
+    PROCESS_INFORMATION procInfo;
+    CreateProcess(NULL, cmdLine, NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &info, &procInfo);
+
+    WaitForSingleObject(procInfo.hProcess, INFINITE);
+    CloseHandle(procInfo.hProcess);
+    CloseHandle(procInfo.hThread);
+
+    // dokanctl.exe requires admin permissions for some reason, so if node is not run as admin,
+    // it'll fail to create the process for unmounting. The path will be unmounted once
+    // the process is killed, however, so there's that!
 }
 
 #else
