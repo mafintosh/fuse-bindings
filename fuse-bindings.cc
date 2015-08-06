@@ -5,17 +5,13 @@
 #include <fuse.h>
 #include <fuse_opt.h>
 #include <fuse_lowlevel.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/mount.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#ifdef __APPLE__
-#include <dispatch/dispatch.h>
-#endif
 
 #include "abstractions.h"
 
@@ -57,7 +53,6 @@ enum bindings_ops_t {
   OP_DESTROY
 };
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static Persistent<Function> buffer_constructor;
 static NanCallback *callback_constructor;
 static struct stat empty_stat;
@@ -74,7 +69,7 @@ struct bindings_t {
   // fuse data
   char mnt[1024];
   char mntopts[1024];
-  pthread_t thread;
+  thread_t thread;
   bindings_sem_t semaphore;
   uv_async_t async;
 
@@ -146,23 +141,16 @@ static bindings_t *bindings_find_mounted (char *path) {
 }
 
 static void bindings_fusermount (char *path) {
-#ifdef __APPLE__
-  char *argv[] = {(char *) "umount", path, NULL};
-#else
-  char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
-#endif
-  pid_t cpid = vfork();
-  if (cpid > 0) waitpid(cpid, NULL, 0);
-  else execvp(argv[0], argv);
+  fusermount(path);
 }
 
 static void bindings_unmount (char *path) {
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_t *b = bindings_find_mounted(path);
   if (b != NULL) b->gc = 1;
   bindings_fusermount(path);
-  if (b != NULL) pthread_join(b->thread, NULL);
-  pthread_mutex_unlock(&mutex);
+  if (b != NULL) thread_join(b->thread);
+  mutex_unlock(&mutex);
 }
 
 
@@ -607,9 +595,9 @@ static void bindings_free (bindings_t *b) {
 }
 
 static void bindings_on_close (uv_handle_t *handle) {
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_free((bindings_t *) handle->data);
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 }
 
 static void *bindings_thread (void *data) {
@@ -1089,15 +1077,15 @@ NAN_METHOD(Mount) {
 
   if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
 
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   int index = bindings_alloc();
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 
   if (index == -1) return NanThrowError("You cannot mount more than 1024 filesystem in one process");
 
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_t *b = bindings_mounted[index];
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 
   memset(&empty_stat, 0, sizeof(empty_stat));
   memset(b, 0, sizeof(bindings_t));
@@ -1158,9 +1146,7 @@ NAN_METHOD(Mount) {
   uv_async_init(uv_default_loop(), &(b->async), (uv_async_cb) bindings_dispatch);
   b->async.data = b;
 
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_create(&(b->thread), &attr, bindings_thread, b);
+  thread_create(&(b->thread), bindings_thread, b);
 
   NanReturnUndefined();
 }
