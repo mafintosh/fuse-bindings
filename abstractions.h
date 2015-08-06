@@ -8,6 +8,10 @@
 #include <semaphore.h>
 #include <dispatch/dispatch.h>
 
+#include <fuse_lowlevel.h>
+
+#define FUSE_OFF_T off_t
+
 typedef dispatch_semaphore_t bindings_sem_t;
 
 NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
@@ -79,6 +83,9 @@ typedef DWORD thread_fn_rtn_t;
 #include <sys/mount.h>
 
 #include <semaphore.h>
+#include <fuse_lowlevel.h>
+
+#define FUSE_OFF_T off_t
 
 typedef sem_t bindings_sem_t;
 

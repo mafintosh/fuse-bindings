@@ -4,7 +4,6 @@
 
 #include <fuse.h>
 #include <fuse_opt.h>
-// #include <fuse_lowlevel.h>
 
 #include <stdio.h>
 #include <string.h>
