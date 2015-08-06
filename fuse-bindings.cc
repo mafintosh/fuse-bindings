@@ -5,7 +5,6 @@
 #include <fuse.h>
 #include <fuse_opt.h>
 #include <fuse_lowlevel.h>
-#include <semaphore.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -17,6 +16,8 @@
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #endif
+
+#include "abstractions.h"
 
 using namespace v8;
 
@@ -74,11 +75,7 @@ struct bindings_t {
   char mnt[1024];
   char mntopts[1024];
   pthread_t thread;
-#ifdef __APPLE__
-  dispatch_semaphore_t semaphore;
-#else
-  sem_t semaphore;
-#endif
+  bindings_sem_t semaphore;
   uv_async_t async;
 
   // methods
@@ -137,33 +134,6 @@ struct bindings_t {
 static bindings_t *bindings_mounted[1024];
 static int bindings_mounted_count = 0;
 static bindings_t *bindings_current = NULL;
-
-#ifdef __APPLE__
-NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
-  *sem = dispatch_semaphore_create(0);
-  return *sem == NULL ? -1 : 0;
-}
-
-NAN_INLINE static void semaphore_wait (dispatch_semaphore_t *sem) {
-  dispatch_semaphore_wait(*sem, DISPATCH_TIME_FOREVER);
-}
-
-NAN_INLINE static void semaphore_signal (dispatch_semaphore_t *sem) {
-  dispatch_semaphore_signal(*sem);
-}
-#else
-NAN_INLINE static int semaphore_init (sem_t *sem) {
-  return sem_init(sem, 0, 0);
-}
-
-NAN_INLINE static void semaphore_wait (sem_t *sem) {
-  sem_wait(sem);
-}
-
-NAN_INLINE static void semaphore_signal (sem_t *sem) {
-  sem_post(sem);
-}
-#endif
 
 static bindings_t *bindings_find_mounted (char *path) {
   for (int i = 0; i < bindings_mounted_count; i++) {
