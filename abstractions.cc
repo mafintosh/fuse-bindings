@@ -1,9 +1,9 @@
 #include "abstractions.h"
 
+#ifdef __APPLE__
+
 #include <unistd.h>
 #include <sys/wait.h>
-
-#ifdef __APPLE__
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -25,7 +25,26 @@ void fusermount (char *path) {
     else execvp(argv[0], argv);
 }
 
+#elif defined(_WIN32)
+
+HANDLE mutex = CreateMutex(NULL, false, NULL);
+
+void thread_create (HANDLE* thread, thread_fn fn, void* data) {
+    *thread = CreateThread(NULL, 0, fn, data, 0, NULL);
+}
+
+void thread_join (HANDLE thread) {
+    WaitForSingleObject(thread, INFINITE);
+}
+
+void fusermount (char *path) {
+    // TODO
+}
+
 #else
+
+#include <unistd.h>
+#include <sys/wait.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 

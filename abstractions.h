@@ -1,10 +1,10 @@
 #include <nan.h>
 
-typedef void*(*thread_fn)(void*);
-
 #ifdef __APPLE__
 
 // OS X
+#include <sys/mount.h>
+
 #include <semaphore.h>
 #include <dispatch/dispatch.h>
 
@@ -34,13 +34,50 @@ NAN_INLINE static void mutex_unlock (pthread_mutex_t *mutex) {
 }
 
 typedef pthread_t thread_t;
+typedef void* thread_fn_rtn_t;
 
-void thread_create (thread_t*, thread_fn, void*);
-void thread_join (thread_t);
+#elif defined(_WIN32)
+
+#include <windows.h>
+#include <io.h>
+#include <winsock2.h>
+
+typedef HANDLE bindings_sem_t;
+
+NAN_INLINE static int semaphore_init (HANDLE *sem) {
+  *sem = CreateSemaphore(NULL, 0, 10, NULL);
+  return *sem == NULL ? -1 : 0;
+}
+
+NAN_INLINE static void semaphore_wait (HANDLE *sem) {
+  WaitForSingleObject(*sem, INFINITE);
+}
+
+NAN_INLINE static void semaphore_signal (HANDLE *sem) {
+  ReleaseSemaphore(*sem, 1, NULL);
+}
+
+extern HANDLE mutex;
+
+NAN_INLINE static void mutex_lock (HANDLE *mutex) {
+    WaitForSingleObject(*mutex, INFINITE);
+}
+
+NAN_INLINE static void mutex_unlock (HANDLE *mutex) {
+    ReleaseMutex(*mutex);
+}
+
+typedef HANDLE thread_t;
+typedef DWORD thread_fn_rtn_t;
+
+#define fuse_session_remove_chan(x)
+#define stat _stati64
 
 #else
 
 // Linux and whatnot
+#include <sys/mount.h>
+
 #include <semaphore.h>
 
 typedef sem_t bindings_sem_t;
@@ -68,10 +105,13 @@ NAN_INLINE static void mutex_unlock (pthread_mutex_t *mutex) {
 }
 
 typedef pthread_t thread_t;
+typedef void* thread_fn_rtn_t;
+
+#endif
+
+typedef thread_fn_rtn_t(*thread_fn)(void*);
 
 void thread_create (thread_t*, thread_fn, void*);
 void thread_join (thread_t);
 
 void fusermount (char*);
-
-#endif

@@ -1,6 +1,8 @@
 var fuse = require('./')
 
-fuse.mount('./mnt', {
+var mountPath = process.platform ? './mnt' : 'M:\\';
+
+fuse.mount(mountPath, {
   readdir: function (path, cb) {
     console.log('readdir(%s)', path)
     if (path === '/') return cb(0, ['test'])
@@ -49,11 +51,11 @@ fuse.mount('./mnt', {
   }
 }, function (err) {
   if (err) throw err
-  console.log('filesystem mounted on ./mnt')
+  console.log('filesystem mounted on ' + mountPath)
 })
 
 process.on('SIGINT', function () {
-  fuse.unmount('./mnt', function () {
+  fuse.unmount(mountPath, function () {
     process.exit()
   })
 })
