@@ -1,6 +1,6 @@
 var fuse = require('./')
 
-var mountPath = process.platform ? './mnt' : 'M:\\';
+var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\';
 
 fuse.mount(mountPath, {
   readdir: function (path, cb) {
@@ -17,8 +17,8 @@ fuse.mount(mountPath, {
         ctime: new Date(),
         size: 100,
         mode: 16877,
-        uid: process.getuid(),
-        gid: process.getgid()
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
@@ -29,9 +29,9 @@ fuse.mount(mountPath, {
         atime: new Date(),
         ctime: new Date(),
         size: 12,
-        mode: 33188,
-        uid: process.getuid(),
-        gid: process.getgid()
+        mode: 188,
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
