@@ -686,6 +686,16 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
   out->tv_nsec = ns;
 }
 
+NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
+  return NanNew<Date>(*out * 1000.0);
+}
+
+NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
+  double ms = date->NumberValue();
+  time_t secs = (time_t)(ms / 1000.0);
+  *out = secs;
+}
+
 NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) {
   if (obj->Has(NanNew<String>("dev"))) stat->st_dev = obj->Get(NanNew<String>("dev"))->NumberValue();
   if (obj->Has(NanNew<String>("ino"))) stat->st_ino = obj->Get(NanNew<String>("ino"))->NumberValue();
@@ -696,17 +706,21 @@ NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) 
   if (obj->Has(NanNew<String>("rdev"))) stat->st_rdev = obj->Get(NanNew<String>("rdev"))->NumberValue();
   if (obj->Has(NanNew<String>("size"))) stat->st_size = obj->Get(NanNew<String>("size"))->NumberValue();
 #ifndef _WIN32
-  if (obj->Has(NanNew<String>("blksize"))) stat->st_blksize = obj->Get(NanNew<String>("blksize"))->NumberValue();
   if (obj->Has(NanNew<String>("blocks"))) stat->st_blocks = obj->Get(NanNew<String>("blocks"))->NumberValue();
+  if (obj->Has(NanNew<String>("blksize"))) stat->st_blksize = obj->Get(NanNew<String>("blksize"))->NumberValue();
+#endif
 #ifdef __APPLE__
   if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(NanNew("mtime")).As<Date>());
   if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(NanNew("ctime")).As<Date>());
   if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(NanNew("atime")).As<Date>());
+#elif defined(_WIN32)
+  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtime, obj->Get(NanNew("mtime")).As<Date>());
+  if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctime, obj->Get(NanNew("ctime")).As<Date>());
+  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atime, obj->Get(NanNew("atime")).As<Date>());
 #else
   if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(NanNew("mtime")).As<Date>());
   if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(NanNew("ctime")).As<Date>());
   if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atim, obj->Get(NanNew("atime")).As<Date>());
-#endif
 #endif
 }
 
@@ -1023,7 +1037,11 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_UTIMENS: {
+#ifdef _WIN32
+      time_t *tv = (time_t *) b->data;
+#else
       struct timespec *tv = (struct timespec *) b->data;
+#endif
       Local<Value> tmp[] = {NanNew<String>(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
       bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
