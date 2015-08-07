@@ -29,7 +29,7 @@ fuse.mount(mountPath, {
         atime: new Date(),
         ctime: new Date(),
         size: 12,
-        mode: 188,
+        mode: 33188,
         uid: process.getuid ? process.getuid() : 0,
         gid: process.getgid ? process.getgid() : 0
       })
