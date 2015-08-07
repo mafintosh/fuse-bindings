@@ -38,8 +38,11 @@ void thread_join (HANDLE thread) {
 }
 
 void fusermount (char *path) {
+    char* dokanPath = getenv("DOKAN_INSTALL_DIR");
     char cmdLine[MAX_PATH];
-    sprintf(cmdLine, "\"%s/dokanctl.exe\" /u %s", DOKAN_INSTALL_DIR, path);
+
+    if(dokanPath) sprintf(cmdLine, "\"%s/dokanctl.exe\" /u %s", dokanPath, path);
+    else sprintf(cmdLine, "dokanctl.exe /u %s", path);
 
     STARTUPINFO info = {sizeof(info)};
     PROCESS_INFORMATION procInfo;

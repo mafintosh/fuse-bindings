@@ -17,20 +17,13 @@
                 }
             }],
             ['OS=="win"', {
-                "variables": {
-                    "dokan_install_path%": "<!(echo %DOKAN_INSTALL_DIR%)"
-                },
-                "defines": [
-                    ["DOKAN_INSTALL_DIR",
-                        "<!(node -e \"process.stdout.write(JSON.stringify(process.argv[1]))\" -- \"<(dokan_install_path)\")"]
-                ],
                 "include_dirs": [
                     "$(DOKAN_FUSE_INCLUDE)",
                     "$(INCLUDE)"
                 ],
                 "link_settings": {
                     "libraries": [
-                        "<(dokan_install_path)/dokanfuse.lib"
+                        "<!(echo %DOKAN_INSTALL_DIR%)/dokanfuse.lib"
                     ]
                 }
             }]
