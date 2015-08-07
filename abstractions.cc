@@ -37,11 +37,9 @@ void thread_join (HANDLE thread) {
     WaitForSingleObject(thread, INFINITE);
 }
 
-#include <iostream>
-
 void fusermount (char *path) {
     char cmdLine[MAX_PATH];
-    sprintf(cmdLine, "dokanctl.exe /u %s", path);
+    sprintf(cmdLine, "\"C:\\Program Files\\Dokan\\DokanLibrary\\dokanctl.exe\" /u %s", path);
 
     STARTUPINFO info = {sizeof(info)};
     PROCESS_INFORMATION procInfo;

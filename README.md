@@ -11,10 +11,16 @@ any buffer copys in read/write. It also supports unmount and mouting of multiple
 
 ## Requirements
 
-You need to have FUSE installed
+You need to have FUSE installed (or Dokany on Windows)
 
 * On Linux/Ubuntu `sudo apt-get install libfuse-dev`
 * On OSX install [OSXFuse](http://osxfuse.github.com/) and pkg-config, `brew install pkg-config`
+* On Windows see `Windows` down below...
+
+### Windows
+Using this on Windows is slightly more complicated. You need to install [Dokany](https://github.com/dokan-dev/dokany) (for `dokanfuse.lib`, `dokanctl.exe`, driver and service) **and** clone its repo (for the headers).
+
+Once the Dokany repo is cloned, you also need to set environment variable `DOKAN_FUSE_INCLUDE` to the path to `*dokany repo*\dokan_fuse\include`.
 
 ## Usage
 
