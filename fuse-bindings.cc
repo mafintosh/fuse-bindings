@@ -67,7 +67,7 @@ struct bindings_t {
   // fuse data
   char mnt[1024];
   char mntopts[1024];
-  thread_t thread;
+  abstr_thread_t thread;
   bindings_sem_t semaphore;
   uv_async_t async;
 

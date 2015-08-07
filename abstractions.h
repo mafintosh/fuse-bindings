@@ -37,7 +37,7 @@ NAN_INLINE static void mutex_unlock (pthread_mutex_t *mutex) {
     pthread_mutex_unlock(mutex);
 }
 
-typedef pthread_t thread_t;
+typedef pthread_t abstr_thread_t;
 typedef void* thread_fn_rtn_t;
 
 #elif defined(_WIN32)
@@ -71,7 +71,7 @@ NAN_INLINE static void mutex_unlock (HANDLE *mutex) {
     ReleaseMutex(*mutex);
 }
 
-typedef HANDLE thread_t;
+typedef HANDLE abstr_thread_t;
 typedef DWORD thread_fn_rtn_t;
 
 #define fuse_session_remove_chan(x)
@@ -111,14 +111,14 @@ NAN_INLINE static void mutex_unlock (pthread_mutex_t *mutex) {
     pthread_mutex_unlock(mutex);
 }
 
-typedef pthread_t thread_t;
+typedef pthread_t abstr_thread_t;
 typedef void* thread_fn_rtn_t;
 
 #endif
 
 typedef thread_fn_rtn_t(*thread_fn)(void*);
 
-void thread_create (thread_t*, thread_fn, void*);
-void thread_join (thread_t);
+void thread_create (abstr_thread_t*, thread_fn, void*);
+void thread_join (abstr_thread_t);
 
 void fusermount (char*);
