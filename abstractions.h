@@ -1,5 +1,7 @@
 #include <nan.h>
 
+#define FUSE_USE_VERSION 29
+
 #ifdef __APPLE__
 
 // OS X
