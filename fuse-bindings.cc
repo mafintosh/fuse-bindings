@@ -672,6 +672,7 @@ static thread_fn_rtn_t bindings_thread (void *data) {
   return 0;
 }
 
+#ifndef _WIN32
 NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
   int ms = (out->tv_nsec / 1000);
   return NanNew<Date>(out->tv_sec * 1000 + ms);
@@ -685,7 +686,7 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
   out->tv_sec = secs;
   out->tv_nsec = ns;
 }
-
+#else
 NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
   return NanNew<Date>(*out * 1000.0);
 }
@@ -695,6 +696,7 @@ NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
   time_t secs = (time_t)(ms / 1000.0);
   *out = secs;
 }
+#endif
 
 NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) {
   if (obj->Has(NanNew<String>("dev"))) stat->st_dev = obj->Get(NanNew<String>("dev"))->NumberValue();

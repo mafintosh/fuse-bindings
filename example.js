@@ -1,6 +1,6 @@
 var fuse = require('./')
 
-var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\';
+var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\'
 
 fuse.mount(mountPath, {
   readdir: function (path, cb) {
