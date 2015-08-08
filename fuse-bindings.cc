@@ -4,19 +4,14 @@
 
 #include <fuse.h>
 #include <fuse_opt.h>
-#include <fuse_lowlevel.h>
-#include <semaphore.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/mount.h>
 #include <sys/types.h>
-#include <sys/wait.h>
-#ifdef __APPLE__
-#include <dispatch/dispatch.h>
-#endif
+
+#include "abstractions.h"
 
 using namespace v8;
 
@@ -56,7 +51,6 @@ enum bindings_ops_t {
   OP_DESTROY
 };
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static Persistent<Function> buffer_constructor;
 static NanCallback *callback_constructor;
 static struct stat empty_stat;
@@ -73,12 +67,8 @@ struct bindings_t {
   // fuse data
   char mnt[1024];
   char mntopts[1024];
-  pthread_t thread;
-#ifdef __APPLE__
-  dispatch_semaphore_t semaphore;
-#else
-  sem_t semaphore;
-#endif
+  abstr_thread_t thread;
+  bindings_sem_t semaphore;
   uv_async_t async;
 
   // methods
@@ -124,8 +114,8 @@ struct bindings_t {
   struct fuse_file_info *info;
   char *path;
   char *name;
-  off_t offset;
-  off_t length;
+  FUSE_OFF_T offset;
+  FUSE_OFF_T length;
   void *data; // various structs
   int mode;
   int dev;
@@ -138,33 +128,6 @@ static bindings_t *bindings_mounted[1024];
 static int bindings_mounted_count = 0;
 static bindings_t *bindings_current = NULL;
 
-#ifdef __APPLE__
-NAN_INLINE static int semaphore_init (dispatch_semaphore_t *sem) {
-  *sem = dispatch_semaphore_create(0);
-  return *sem == NULL ? -1 : 0;
-}
-
-NAN_INLINE static void semaphore_wait (dispatch_semaphore_t *sem) {
-  dispatch_semaphore_wait(*sem, DISPATCH_TIME_FOREVER);
-}
-
-NAN_INLINE static void semaphore_signal (dispatch_semaphore_t *sem) {
-  dispatch_semaphore_signal(*sem);
-}
-#else
-NAN_INLINE static int semaphore_init (sem_t *sem) {
-  return sem_init(sem, 0, 0);
-}
-
-NAN_INLINE static void semaphore_wait (sem_t *sem) {
-  sem_wait(sem);
-}
-
-NAN_INLINE static void semaphore_signal (sem_t *sem) {
-  sem_post(sem);
-}
-#endif
-
 static bindings_t *bindings_find_mounted (char *path) {
   for (int i = 0; i < bindings_mounted_count; i++) {
     bindings_t *b = bindings_mounted[i];
@@ -176,23 +139,16 @@ static bindings_t *bindings_find_mounted (char *path) {
 }
 
 static void bindings_fusermount (char *path) {
-#ifdef __APPLE__
-  char *argv[] = {(char *) "umount", path, NULL};
-#else
-  char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
-#endif
-  pid_t cpid = vfork();
-  if (cpid > 0) waitpid(cpid, NULL, 0);
-  else execvp(argv[0], argv);
+  fusermount(path);
 }
 
 static void bindings_unmount (char *path) {
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_t *b = bindings_find_mounted(path);
   if (b != NULL) b->gc = 1;
   bindings_fusermount(path);
-  if (b != NULL) pthread_join(b->thread, NULL);
-  pthread_mutex_unlock(&mutex);
+  if (b != NULL) thread_join(b->thread);
+  mutex_unlock(&mutex);
 }
 
 
@@ -236,7 +192,7 @@ static int bindings_mknod (const char *path, mode_t mode, dev_t dev) {
   return bindings_call(b);
 }
 
-static int bindings_truncate (const char *path, off_t size) {
+static int bindings_truncate (const char *path, FUSE_OFF_T size) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_TRUNCATE;
@@ -246,7 +202,7 @@ static int bindings_truncate (const char *path, off_t size) {
   return bindings_call(b);
 }
 
-static int bindings_ftruncate (const char *path, off_t size, struct fuse_file_info *info) {
+static int bindings_ftruncate (const char *path, FUSE_OFF_T size, struct fuse_file_info *info) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_FTRUNCATE;
@@ -310,7 +266,7 @@ static int bindings_fsyncdir (const char *path, int datasync, struct fuse_file_i
   return bindings_call(b);
 }
 
-static int bindings_readdir (const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *info) {
+static int bindings_readdir (const char *path, void *buf, fuse_fill_dir_t filler, FUSE_OFF_T offset, struct fuse_file_info *info) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_READDIR;
@@ -441,7 +397,7 @@ static int bindings_opendir (const char *path, struct fuse_file_info *info) {
   return bindings_call(b);
 }
 
-static int bindings_read (const char *path, char *buf, size_t len, off_t offset, struct fuse_file_info *info) {
+static int bindings_read (const char *path, char *buf, size_t len, FUSE_OFF_T offset, struct fuse_file_info *info) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_READ;
@@ -454,7 +410,7 @@ static int bindings_read (const char *path, char *buf, size_t len, off_t offset,
   return bindings_call(b);
 }
 
-static int bindings_write (const char *path, const char *buf, size_t len, off_t offset, struct fuse_file_info * info) {
+static int bindings_write (const char *path, const char *buf, size_t len, FUSE_OFF_T offset, struct fuse_file_info * info) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_WRITE;
@@ -637,12 +593,12 @@ static void bindings_free (bindings_t *b) {
 }
 
 static void bindings_on_close (uv_handle_t *handle) {
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_free((bindings_t *) handle->data);
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 }
 
-static void *bindings_thread (void *data) {
+static thread_fn_rtn_t bindings_thread (void *data) {
   bindings_t *b = (bindings_t *) data;
 
   struct fuse_operations ops = { };
@@ -713,7 +669,7 @@ static void *bindings_thread (void *data) {
 
   uv_close((uv_handle_t*) &(b->async), &bindings_on_close);
 
-  return NULL;
+  return 0;
 }
 
 NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
@@ -730,6 +686,16 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
   out->tv_nsec = ns;
 }
 
+NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
+  return NanNew<Date>(*out * 1000.0);
+}
+
+NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
+  double ms = date->NumberValue();
+  time_t secs = (time_t)(ms / 1000.0);
+  *out = secs;
+}
+
 NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) {
   if (obj->Has(NanNew<String>("dev"))) stat->st_dev = obj->Get(NanNew<String>("dev"))->NumberValue();
   if (obj->Has(NanNew<String>("ino"))) stat->st_ino = obj->Get(NanNew<String>("ino"))->NumberValue();
@@ -739,12 +705,18 @@ NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) 
   if (obj->Has(NanNew<String>("gid"))) stat->st_gid = obj->Get(NanNew<String>("gid"))->NumberValue();
   if (obj->Has(NanNew<String>("rdev"))) stat->st_rdev = obj->Get(NanNew<String>("rdev"))->NumberValue();
   if (obj->Has(NanNew<String>("size"))) stat->st_size = obj->Get(NanNew<String>("size"))->NumberValue();
-  if (obj->Has(NanNew<String>("blksize"))) stat->st_blksize = obj->Get(NanNew<String>("blksize"))->NumberValue();
+#ifndef _WIN32
   if (obj->Has(NanNew<String>("blocks"))) stat->st_blocks = obj->Get(NanNew<String>("blocks"))->NumberValue();
+  if (obj->Has(NanNew<String>("blksize"))) stat->st_blksize = obj->Get(NanNew<String>("blksize"))->NumberValue();
+#endif
 #ifdef __APPLE__
   if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(NanNew("mtime")).As<Date>());
   if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(NanNew("ctime")).As<Date>());
   if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(NanNew("atime")).As<Date>());
+#elif defined(_WIN32)
+  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtime, obj->Get(NanNew("mtime")).As<Date>());
+  if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctime, obj->Get(NanNew("ctime")).As<Date>());
+  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atime, obj->Get(NanNew("atime")).As<Date>());
 #else
   if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(NanNew("mtime")).As<Date>());
   if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(NanNew("ctime")).As<Date>());
@@ -810,7 +782,7 @@ NAN_METHOD(OpCallback) {
       case OP_READLINK: {
         if (args.Length() > 2 && args[2]->IsString()) {
           NanUtf8String path(args[2]);
-          stpcpy((char *) b->data, *path);
+          strcpy((char *) b->data, *path);
         }
       }
       break;
@@ -1065,7 +1037,11 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_UTIMENS: {
+#ifdef _WIN32
+      time_t *tv = (time_t *) b->data;
+#else
       struct timespec *tv = (struct timespec *) b->data;
+#endif
       Local<Value> tmp[] = {NanNew<String>(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
       bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
@@ -1119,15 +1095,15 @@ NAN_METHOD(Mount) {
 
   if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
 
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   int index = bindings_alloc();
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 
   if (index == -1) return NanThrowError("You cannot mount more than 1024 filesystem in one process");
 
-  pthread_mutex_lock(&mutex);
+  mutex_lock(&mutex);
   bindings_t *b = bindings_mounted[index];
-  pthread_mutex_unlock(&mutex);
+  mutex_unlock(&mutex);
 
   memset(&empty_stat, 0, sizeof(empty_stat));
   memset(b, 0, sizeof(bindings_t));
@@ -1172,8 +1148,8 @@ NAN_METHOD(Mount) {
   Local<Value> tmp[] = {NanNew<Number>(index), NanNew<FunctionTemplate>(OpCallback)->GetFunction()};
   b->callback = new NanCallback(callback_constructor->Call(2, tmp).As<Function>());
 
-  stpcpy(b->mnt, *path);
-  stpcpy(b->mntopts, "-o");
+  strcpy(b->mnt, *path);
+  strcpy(b->mntopts, "-o");
 
   Local<Array> options = ops->Get(NanNew<String>("options")).As<Array>();
   if (options->IsArray()) {
@@ -1188,9 +1164,7 @@ NAN_METHOD(Mount) {
   uv_async_init(uv_default_loop(), &(b->async), (uv_async_cb) bindings_dispatch);
   b->async.data = b;
 
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_create(&(b->thread), &attr, bindings_thread, b);
+  thread_create(&(b->thread), bindings_thread, b);
 
   NanReturnUndefined();
 }
@@ -1247,7 +1221,7 @@ NAN_METHOD(Unmount) {
   Local<Function> callback = args[1].As<Function>();
 
   char *path_alloc = (char *) malloc(1024);
-  stpcpy(path_alloc, *path);
+  strcpy(path_alloc, *path);
 
   NanAsyncQueueWorker(new UnmountWorker(new NanCallback(callback), path_alloc));
   NanReturnUndefined();

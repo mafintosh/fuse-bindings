@@ -1,6 +1,8 @@
 var fuse = require('./')
 
-fuse.mount('./mnt', {
+var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\';
+
+fuse.mount(mountPath, {
   readdir: function (path, cb) {
     console.log('readdir(%s)', path)
     if (path === '/') return cb(0, ['test'])
@@ -15,8 +17,8 @@ fuse.mount('./mnt', {
         ctime: new Date(),
         size: 100,
         mode: 16877,
-        uid: process.getuid(),
-        gid: process.getgid()
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
@@ -28,8 +30,8 @@ fuse.mount('./mnt', {
         ctime: new Date(),
         size: 12,
         mode: 33188,
-        uid: process.getuid(),
-        gid: process.getgid()
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
@@ -49,11 +51,12 @@ fuse.mount('./mnt', {
   }
 }, function (err) {
   if (err) throw err
-  console.log('filesystem mounted on ./mnt')
+  console.log('filesystem mounted on ' + mountPath)
 })
 
 process.on('SIGINT', function () {
-  fuse.unmount('./mnt', function () {
+  fuse.unmount(mountPath, function () {
+    console.log('filesystem at ' + mountPath + ' unmounted')
     process.exit()
   })
 })
