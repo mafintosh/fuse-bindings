@@ -181,11 +181,11 @@ Same as above but is called when someone stats a file descriptor
 
 Called when a file descriptor is being flushed
 
-#### `ops.fsync(path, fd, cb)`
+#### `ops.fsync(path, fd, datasync, cb)`
 
 Called when a file descriptor is being fsync'ed.
 
-#### `ops.fsyncdir(path, fd, cb)`
+#### `ops.fsyncdir(path, fd, datasync, cb)`
 
 Same as above but on a directory
 
