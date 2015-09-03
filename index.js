@@ -51,7 +51,8 @@ exports.mount = function (mnt, ops, cb) {
   var init = ops.init || call
   ops.init = function (next) {
     callback()
-    init(next)
+    if (init.length > 1) init(mnt, next) // backwards compat for now
+    else init(next)
   }
 
   var error = ops.error || call
