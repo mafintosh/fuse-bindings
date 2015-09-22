@@ -164,7 +164,7 @@ NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
 #else
 void noop (char *data, void *hint) {}
 NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
-  return NanNewBufferHandle(data, length, noop, NULL);
+  return Nan::NewBuffer(data, length, noop, NULL).ToLocalChecked();
 }
 #endif
 
