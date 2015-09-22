@@ -9,7 +9,7 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^1.7.0",
+    "nan": "^2.0.9",
     "xtend": "^4.0.0"
   },
   "devDependencies": {
