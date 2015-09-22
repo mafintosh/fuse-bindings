@@ -51,8 +51,8 @@ enum bindings_ops_t {
   OP_DESTROY
 };
 
-static Persistent<Function> buffer_constructor;
-static NanCallback *callback_constructor;
+static Nan::Persistent<Function> buffer_constructor;
+static Nan::Callback *callback_constructor;
 static struct stat empty_stat;
 
 struct bindings_t {
@@ -72,41 +72,41 @@ struct bindings_t {
   uv_async_t async;
 
   // methods
-  NanCallback *ops_init;
-  NanCallback *ops_error;
-  NanCallback *ops_access;
-  NanCallback *ops_statfs;
-  NanCallback *ops_getattr;
-  NanCallback *ops_fgetattr;
-  NanCallback *ops_flush;
-  NanCallback *ops_fsync;
-  NanCallback *ops_fsyncdir;
-  NanCallback *ops_readdir;
-  NanCallback *ops_truncate;
-  NanCallback *ops_ftruncate;
-  NanCallback *ops_readlink;
-  NanCallback *ops_chown;
-  NanCallback *ops_chmod;
-  NanCallback *ops_mknod;
-  NanCallback *ops_setxattr;
-  NanCallback *ops_getxattr;
-  NanCallback *ops_open;
-  NanCallback *ops_opendir;
-  NanCallback *ops_read;
-  NanCallback *ops_write;
-  NanCallback *ops_release;
-  NanCallback *ops_releasedir;
-  NanCallback *ops_create;
-  NanCallback *ops_utimens;
-  NanCallback *ops_unlink;
-  NanCallback *ops_rename;
-  NanCallback *ops_link;
-  NanCallback *ops_symlink;
-  NanCallback *ops_mkdir;
-  NanCallback *ops_rmdir;
-  NanCallback *ops_destroy;
+  Nan::Callback *ops_init;
+  Nan::Callback *ops_error;
+  Nan::Callback *ops_access;
+  Nan::Callback *ops_statfs;
+  Nan::Callback *ops_getattr;
+  Nan::Callback *ops_fgetattr;
+  Nan::Callback *ops_flush;
+  Nan::Callback *ops_fsync;
+  Nan::Callback *ops_fsyncdir;
+  Nan::Callback *ops_readdir;
+  Nan::Callback *ops_truncate;
+  Nan::Callback *ops_ftruncate;
+  Nan::Callback *ops_readlink;
+  Nan::Callback *ops_chown;
+  Nan::Callback *ops_chmod;
+  Nan::Callback *ops_mknod;
+  Nan::Callback *ops_setxattr;
+  Nan::Callback *ops_getxattr;
+  Nan::Callback *ops_open;
+  Nan::Callback *ops_opendir;
+  Nan::Callback *ops_read;
+  Nan::Callback *ops_write;
+  Nan::Callback *ops_release;
+  Nan::Callback *ops_releasedir;
+  Nan::Callback *ops_create;
+  Nan::Callback *ops_utimens;
+  Nan::Callback *ops_unlink;
+  Nan::Callback *ops_rename;
+  Nan::Callback *ops_link;
+  Nan::Callback *ops_symlink;
+  Nan::Callback *ops_mkdir;
+  Nan::Callback *ops_rmdir;
+  Nan::Callback *ops_destroy;
 
-  NanCallback *callback;
+  Nan::Callback *callback;
 
   // method data
   bindings_ops_t op;
@@ -152,10 +152,12 @@ static void bindings_unmount (char *path) {
 }
 
 
-#if (NODE_MODULE_VERSION > NODE_0_10_MODULE_VERSION)
+#if (NODE_MODULE_VERSION > NODE_0_10_MODULE_VERSION && NODE_MODULE_VERSION < IOJS_3_0_MODULE_VERSION)
 NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
-  Local<Object> buf = NanNew(buffer_constructor)->NewInstance(0, NULL);
-  buf->Set(NanNew<String>("length"), NanNew<Number>(length));
+  Local<Object> buf = Nan::New(buffer_constructor)->NewInstance(0, NULL);
+  Local<String> k = Nan::New<String>("length").ToLocalChecked();
+  Local<Number> v = Nan::New<Number>(length);
+  buf->Set(k, v);
   buf->SetIndexedPropertiesToExternalArrayData((char *) data, kExternalUnsignedByteArray, length);
   return buf;
 }
@@ -675,7 +677,7 @@ static thread_fn_rtn_t bindings_thread (void *data) {
 #ifndef _WIN32
 NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
   int ms = (out->tv_nsec / 1000);
-  return NanNew<Date>(out->tv_sec * 1000 + ms);
+  return Nan::New<Date>(out->tv_sec * 1000 + ms).ToLocalChecked();
 }
 
 NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date) {
@@ -688,7 +690,7 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
 }
 #else
 NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
-  return NanNew<Date>(*out * 1000.0);
+  return Nan::New<Date>(*out * 1000.0);
 }
 
 NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
@@ -699,91 +701,90 @@ NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
 #endif
 
 NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) {
-  if (obj->Has(NanNew<String>("dev"))) stat->st_dev = obj->Get(NanNew<String>("dev"))->NumberValue();
-  if (obj->Has(NanNew<String>("ino"))) stat->st_ino = obj->Get(NanNew<String>("ino"))->NumberValue();
-  if (obj->Has(NanNew<String>("mode"))) stat->st_mode = obj->Get(NanNew<String>("mode"))->Uint32Value();
-  if (obj->Has(NanNew<String>("nlink"))) stat->st_nlink = obj->Get(NanNew<String>("nlink"))->NumberValue();
-  if (obj->Has(NanNew<String>("uid"))) stat->st_uid = obj->Get(NanNew<String>("uid"))->NumberValue();
-  if (obj->Has(NanNew<String>("gid"))) stat->st_gid = obj->Get(NanNew<String>("gid"))->NumberValue();
-  if (obj->Has(NanNew<String>("rdev"))) stat->st_rdev = obj->Get(NanNew<String>("rdev"))->NumberValue();
-  if (obj->Has(NanNew<String>("size"))) stat->st_size = obj->Get(NanNew<String>("size"))->NumberValue();
+  if (obj->Has(Nan::New<String>("dev").ToLocalChecked())) stat->st_dev = obj->Get(Nan::New<String>("dev").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("ino").ToLocalChecked())) stat->st_ino = obj->Get(Nan::New<String>("ino").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("mode").ToLocalChecked())) stat->st_mode = obj->Get(Nan::New<String>("mode").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("nlink").ToLocalChecked())) stat->st_nlink = obj->Get(Nan::New<String>("nlink").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("uid").ToLocalChecked())) stat->st_uid = obj->Get(Nan::New<String>("uid").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("gid").ToLocalChecked())) stat->st_gid = obj->Get(Nan::New<String>("gid").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("rdev").ToLocalChecked())) stat->st_rdev = obj->Get(Nan::New<String>("rdev").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("size").ToLocalChecked())) stat->st_size = obj->Get(Nan::New<String>("size").ToLocalChecked())->NumberValue();
 #ifndef _WIN32
-  if (obj->Has(NanNew<String>("blocks"))) stat->st_blocks = obj->Get(NanNew<String>("blocks"))->NumberValue();
-  if (obj->Has(NanNew<String>("blksize"))) stat->st_blksize = obj->Get(NanNew<String>("blksize"))->NumberValue();
+  if (obj->Has(Nan::New<String>("blocks").ToLocalChecked())) stat->st_blocks = obj->Get(Nan::New<String>("blocks").ToLocalChecked())->NumberValue();
+  if (obj->Has(Nan::New<String>("blksize").ToLocalChecked())) stat->st_blksize = obj->Get(Nan::New<String>("blksize").ToLocalChecked())->NumberValue();
 #endif
 #ifdef __APPLE__
-  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(NanNew("mtime")).As<Date>());
-  if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(NanNew("ctime")).As<Date>());
-  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(NanNew("atime")).As<Date>());
+  if (obj->Has(Nan::New<String>("mtime").ToLocalChecked())) bindings_set_date(&stat->st_mtimespec, obj->Get(Nan::New("mtime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("ctime").ToLocalChecked())) bindings_set_date(&stat->st_ctimespec, obj->Get(Nan::New("ctime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("atime").ToLocalChecked())) bindings_set_date(&stat->st_atimespec, obj->Get(Nan::New("atime").ToLocalChecked()).As<Date>());
 #elif defined(_WIN32)
-  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtime, obj->Get(NanNew("mtime")).As<Date>());
-  if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctime, obj->Get(NanNew("ctime")).As<Date>());
-  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atime, obj->Get(NanNew("atime")).As<Date>());
+  if (obj->Has(Nan::New<String>("mtime").ToLocalChecked())) bindings_set_date(&stat->st_mtime, obj->Get(Nan::New("mtime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("ctime").ToLocalChecked())) bindings_set_date(&stat->st_ctime, obj->Get(Nan::New("ctime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("atime").ToLocalChecked())) bindings_set_date(&stat->st_atime, obj->Get(Nan::New("atime").ToLocalChecked()).As<Date>());
 #else
-  if (obj->Has(NanNew<String>("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(NanNew("mtime")).As<Date>());
-  if (obj->Has(NanNew<String>("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(NanNew("ctime")).As<Date>());
-  if (obj->Has(NanNew<String>("atime"))) bindings_set_date(&stat->st_atim, obj->Get(NanNew("atime")).As<Date>());
+  if (obj->Has(Nan::New<String>("mtime").ToLocalChecked())) bindings_set_date(&stat->st_mtim, obj->Get(Nan::New("mtime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("ctime").ToLocalChecked())) bindings_set_date(&stat->st_ctim, obj->Get(Nan::New("ctime").ToLocalChecked()).As<Date>());
+  if (obj->Has(Nan::New<String>("atime").ToLocalChecked())) bindings_set_date(&stat->st_atim, obj->Get(Nan::New("atime").ToLocalChecked()).As<Date>());
 #endif
 }
 
 NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object> obj) { // from http://linux.die.net/man/2/stat
-  if (obj->Has(NanNew<String>("bsize"))) statfs->f_bsize = obj->Get(NanNew<String>("bsize"))->Uint32Value();
-  if (obj->Has(NanNew<String>("frsize"))) statfs->f_frsize = obj->Get(NanNew<String>("frsize"))->Uint32Value();
-  if (obj->Has(NanNew<String>("blocks"))) statfs->f_blocks = obj->Get(NanNew<String>("blocks"))->Uint32Value();
-  if (obj->Has(NanNew<String>("bfree"))) statfs->f_bfree = obj->Get(NanNew<String>("bfree"))->Uint32Value();
-  if (obj->Has(NanNew<String>("bavail"))) statfs->f_bavail = obj->Get(NanNew<String>("bavail"))->Uint32Value();
-  if (obj->Has(NanNew<String>("files"))) statfs->f_files = obj->Get(NanNew<String>("files"))->Uint32Value();
-  if (obj->Has(NanNew<String>("ffree"))) statfs->f_ffree = obj->Get(NanNew<String>("ffree"))->Uint32Value();
-  if (obj->Has(NanNew<String>("favail"))) statfs->f_favail = obj->Get(NanNew<String>("favail"))->Uint32Value();
-  if (obj->Has(NanNew<String>("fsid"))) statfs->f_fsid = obj->Get(NanNew<String>("fsid"))->Uint32Value();
-  if (obj->Has(NanNew<String>("flag"))) statfs->f_flag = obj->Get(NanNew<String>("flag"))->Uint32Value();
-  if (obj->Has(NanNew<String>("namemax"))) statfs->f_namemax = obj->Get(NanNew<String>("namemax"))->Uint32Value();
+  if (obj->Has(Nan::New<String>("bsize").ToLocalChecked())) statfs->f_bsize = obj->Get(Nan::New<String>("bsize").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("frsize").ToLocalChecked())) statfs->f_frsize = obj->Get(Nan::New<String>("frsize").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("blocks").ToLocalChecked())) statfs->f_blocks = obj->Get(Nan::New<String>("blocks").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("bfree").ToLocalChecked())) statfs->f_bfree = obj->Get(Nan::New<String>("bfree").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("bavail").ToLocalChecked())) statfs->f_bavail = obj->Get(Nan::New<String>("bavail").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("files").ToLocalChecked())) statfs->f_files = obj->Get(Nan::New<String>("files").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("ffree").ToLocalChecked())) statfs->f_ffree = obj->Get(Nan::New<String>("ffree").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("favail").ToLocalChecked())) statfs->f_favail = obj->Get(Nan::New<String>("favail").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("fsid").ToLocalChecked())) statfs->f_fsid = obj->Get(Nan::New<String>("fsid").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("flag").ToLocalChecked())) statfs->f_flag = obj->Get(Nan::New<String>("flag").ToLocalChecked())->Uint32Value();
+  if (obj->Has(Nan::New<String>("namemax").ToLocalChecked())) statfs->f_namemax = obj->Get(Nan::New<String>("namemax").ToLocalChecked())->Uint32Value();
 }
 
 NAN_INLINE static void bindings_set_dirs (bindings_t *b, Local<Array> dirs) {
+  Nan::HandleScope scope;
   for (uint32_t i = 0; i < dirs->Length(); i++) {
-    NanUtf8String dir(dirs->Get(i));
+    Nan::Utf8String dir(dirs->Get(i));
     if (b->filler(b->data, *dir, &empty_stat, 0)) break;
   }
 }
 
 NAN_METHOD(OpCallback) {
-  NanScope();
-
-  bindings_t *b = bindings_mounted[args[0]->Uint32Value()];
-  b->result = (args.Length() > 1 && args[1]->IsNumber()) ? args[1]->Uint32Value() : 0;
+  bindings_t *b = bindings_mounted[info[0]->Uint32Value()];
+  b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value() : 0;
   bindings_current = NULL;
 
   if (!b->result) {
     switch (b->op) {
       case OP_STATFS: {
-        if (args.Length() > 2 && args[2]->IsObject()) bindings_set_statfs((struct statvfs *) b->data, args[2].As<Object>());
+        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_statfs((struct statvfs *) b->data, info[2].As<Object>());
       }
       break;
 
       case OP_GETATTR:
       case OP_FGETATTR: {
-        if (args.Length() > 2 && args[2]->IsObject()) bindings_set_stat((struct stat *) b->data, args[2].As<Object>());
+        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_stat((struct stat *) b->data, info[2].As<Object>());
       }
       break;
 
       case OP_READDIR: {
-        if (args.Length() > 2 && args[2]->IsArray()) bindings_set_dirs(b, args[2].As<Array>());
+        if (info.Length() > 2 && info[2]->IsArray()) bindings_set_dirs(b, info[2].As<Array>());
       }
       break;
 
       case OP_CREATE:
       case OP_OPEN:
       case OP_OPENDIR: {
-        if (args.Length() > 2 && args[2]->IsNumber()) {
-          b->info->fh = args[2].As<Number>()->Uint32Value();
+        if (info.Length() > 2 && info[2]->IsNumber()) {
+          b->info->fh = info[2].As<Number>()->Uint32Value();
         }
       }
       break;
 
       case OP_READLINK: {
-        if (args.Length() > 2 && args[2]->IsString()) {
-          NanUtf8String path(args[2]);
+        if (info.Length() > 2 && info[2]->IsString()) {
+          Nan::Utf8String path(info[2]);
           strcpy((char *) b->data, *path);
         }
       }
@@ -819,16 +820,15 @@ NAN_METHOD(OpCallback) {
   }
 
   semaphore_signal(&(b->semaphore));
-  NanReturnUndefined();
 }
 
-NAN_INLINE static void bindings_call_op (bindings_t *b, NanCallback *fn, int argc, Local<Value> *argv) {
+NAN_INLINE static void bindings_call_op (bindings_t *b, Nan::Callback *fn, int argc, Local<Value> *argv) {
   if (fn == NULL) semaphore_signal(&(b->semaphore));
   else fn->Call(argc, argv);
 }
 
 static void bindings_dispatch (uv_async_t* handle, int status) {
-  NanScope();
+  Nan::HandleScope scope;
 
   bindings_t *b = bindings_current = (bindings_t *) handle->data;
   Local<Function> callback = b->callback->GetFunction();
@@ -848,72 +848,72 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_STATFS: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_statfs, 2, tmp);
     }
     return;
 
     case OP_FGETATTR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_fgetattr, 3, tmp);
     }
     return;
 
     case OP_GETATTR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_getattr, 2, tmp);
     }
     return;
 
     case OP_READDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_readdir, 2, tmp);
     }
     return;
 
     case OP_CREATE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_create, 3, tmp);
     }
     return;
 
     case OP_TRUNCATE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->length), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->length), callback};
       bindings_call_op(b, b->ops_truncate, 3, tmp);
     }
     return;
 
     case OP_FTRUNCATE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), NanNew<Number>(b->length), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->length), callback};
       bindings_call_op(b, b->ops_ftruncate, 4, tmp);
     }
     return;
 
     case OP_ACCESS: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_access, 3, tmp);
     }
     return;
 
     case OP_OPEN: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_open, 3, tmp);
     }
     return;
 
     case OP_OPENDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_opendir, 3, tmp);
     }
     return;
 
     case OP_WRITE: {
       Local<Value> tmp[] = {
-        NanNew<String>(b->path),
-        NanNew<Number>(b->info->fh),
+        Nan::New<String>(b->path).ToLocalChecked(),
+        Nan::New<Number>(b->info->fh),
         bindings_buffer((char *) b->data, b->length),
-        NanNew<Number>(b->length),
-        NanNew<Number>(b->offset),
+        Nan::New<Number>(b->length),
+        Nan::New<Number>(b->offset),
         callback
       };
       bindings_call_op(b, b->ops_write, 6, tmp);
@@ -922,11 +922,11 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
 
     case OP_READ: {
       Local<Value> tmp[] = {
-        NanNew<String>(b->path),
-        NanNew<Number>(b->info->fh),
+        Nan::New<String>(b->path).ToLocalChecked(),
+        Nan::New<Number>(b->info->fh),
         bindings_buffer((char *) b->data, b->length),
-        NanNew<Number>(b->length),
-        NanNew<Number>(b->offset),
+        Nan::New<Number>(b->length),
+        Nan::New<Number>(b->offset),
         callback
       };
       bindings_call_op(b, b->ops_read, 6, tmp);
@@ -934,73 +934,73 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_RELEASE: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_release, 3, tmp);
     }
     return;
 
     case OP_RELEASEDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_releasedir, 3, tmp);
     }
     return;
 
     case OP_UNLINK: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_unlink, 2, tmp);
     }
     return;
 
     case OP_RENAME: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<String>((char *) b->data), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<String>((char *) b->data).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_rename, 3, tmp);
     }
     return;
 
     case OP_LINK: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<String>((char *) b->data), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<String>((char *) b->data).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_link, 3, tmp);
     }
     return;
 
     case OP_SYMLINK: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<String>((char *) b->data), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<String>((char *) b->data).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_symlink, 3, tmp);
     }
     return;
 
     case OP_CHMOD: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_chmod, 3, tmp);
     }
     return;
 
     case OP_MKNOD: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), NanNew<Number>(b->dev), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), Nan::New<Number>(b->dev), callback};
       bindings_call_op(b, b->ops_mknod, 4, tmp);
     }
     return;
 
     case OP_CHOWN: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->uid), NanNew<Number>(b->gid), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->uid), Nan::New<Number>(b->gid), callback};
       bindings_call_op(b, b->ops_chown, 4, tmp);
     }
     return;
 
     case OP_READLINK: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_readlink, 2, tmp);
     }
     return;
 
     case OP_SETXATTR: {
       Local<Value> tmp[] = {
-        NanNew<String>(b->path),
-        NanNew<String>(b->name),
+        Nan::New<String>(b->path).ToLocalChecked(),
+        Nan::New<String>(b->name).ToLocalChecked(),
         bindings_buffer((char *) b->data, b->length),
-        NanNew<Number>(b->length),
-        NanNew<Number>(b->offset),
-        NanNew<Number>(b->mode),
+        Nan::New<Number>(b->length),
+        Nan::New<Number>(b->offset),
+        Nan::New<Number>(b->mode),
         callback
       };
       bindings_call_op(b, b->ops_setxattr, 7, tmp);
@@ -1009,11 +1009,11 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
 
     case OP_GETXATTR: {
       Local<Value> tmp[] = {
-        NanNew<String>(b->path),
-        NanNew<String>(b->name),
+        Nan::New<String>(b->path).ToLocalChecked(),
+        Nan::New<String>(b->name).ToLocalChecked(),
         bindings_buffer((char *) b->data, b->length),
-        NanNew<Number>(b->length),
-        NanNew<Number>(b->offset),
+        Nan::New<Number>(b->length),
+        Nan::New<Number>(b->offset),
         callback
       };
       bindings_call_op(b, b->ops_getxattr, 6, tmp);
@@ -1021,13 +1021,13 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_MKDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_mkdir, 3, tmp);
     }
     return;
 
     case OP_RMDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), callback};
       bindings_call_op(b, b->ops_rmdir, 2, tmp);
     }
     return;
@@ -1044,25 +1044,25 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
 #else
       struct timespec *tv = (struct timespec *) b->data;
 #endif
-      Local<Value> tmp[] = {NanNew<String>(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
       bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
     return;
 
     case OP_FLUSH: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_flush, 3, tmp);
     }
     return;
 
     case OP_FSYNC: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_fsync, 4, tmp);
     }
     return;
 
     case OP_FSYNCDIR: {
-      Local<Value> tmp[] = {NanNew<String>(b->path), NanNew<Number>(b->info->fh), NanNew<Number>(b->mode), callback};
+      Local<Value> tmp[] = {Nan::New<String>(b->path).ToLocalChecked(), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_fsyncdir, 4, tmp);
     }
     return;
@@ -1093,15 +1093,13 @@ static int bindings_alloc () {
 }
 
 NAN_METHOD(Mount) {
-  NanScope();
-
-  if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
+  if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
 
   mutex_lock(&mutex);
   int index = bindings_alloc();
   mutex_unlock(&mutex);
 
-  if (index == -1) return NanThrowError("You cannot mount more than 1024 filesystem in one process");
+  if (index == -1) return Nan::ThrowError("You cannot mount more than 1024 filesystem in one process");
 
   mutex_lock(&mutex);
   bindings_t *b = bindings_mounted[index];
@@ -1110,53 +1108,53 @@ NAN_METHOD(Mount) {
   memset(&empty_stat, 0, sizeof(empty_stat));
   memset(b, 0, sizeof(bindings_t));
 
-  NanUtf8String path(args[0]);
-  Local<Object> ops = args[1].As<Object>();
+  Nan::Utf8String path(info[0]);
+  Local<Object> ops = info[1].As<Object>();
 
-  b->ops_init = ops->Has(NanNew<String>("init")) ? new NanCallback(ops->Get(NanNew<String>("init")).As<Function>()) : NULL;
-  b->ops_error = ops->Has(NanNew<String>("error")) ? new NanCallback(ops->Get(NanNew<String>("error")).As<Function>()) : NULL;
-  b->ops_access = ops->Has(NanNew<String>("access")) ? new NanCallback(ops->Get(NanNew<String>("access")).As<Function>()) : NULL;
-  b->ops_statfs = ops->Has(NanNew<String>("statfs")) ? new NanCallback(ops->Get(NanNew<String>("statfs")).As<Function>()) : NULL;
-  b->ops_getattr = ops->Has(NanNew<String>("getattr")) ? new NanCallback(ops->Get(NanNew<String>("getattr")).As<Function>()) : NULL;
-  b->ops_fgetattr = ops->Has(NanNew<String>("fgetattr")) ? new NanCallback(ops->Get(NanNew<String>("fgetattr")).As<Function>()) : NULL;
-  b->ops_flush = ops->Has(NanNew<String>("flush")) ? new NanCallback(ops->Get(NanNew<String>("flush")).As<Function>()) : NULL;
-  b->ops_fsync = ops->Has(NanNew<String>("fsync")) ? new NanCallback(ops->Get(NanNew<String>("fsync")).As<Function>()) : NULL;
-  b->ops_fsyncdir = ops->Has(NanNew<String>("fsyncdir")) ? new NanCallback(ops->Get(NanNew<String>("fsyncdir")).As<Function>()) : NULL;
-  b->ops_readdir = ops->Has(NanNew<String>("readdir")) ? new NanCallback(ops->Get(NanNew<String>("readdir")).As<Function>()) : NULL;
-  b->ops_truncate = ops->Has(NanNew<String>("truncate")) ? new NanCallback(ops->Get(NanNew<String>("truncate")).As<Function>()) : NULL;
-  b->ops_ftruncate = ops->Has(NanNew<String>("ftruncate")) ? new NanCallback(ops->Get(NanNew<String>("ftruncate")).As<Function>()) : NULL;
-  b->ops_readlink = ops->Has(NanNew<String>("readlink")) ? new NanCallback(ops->Get(NanNew<String>("readlink")).As<Function>()) : NULL;
-  b->ops_chown = ops->Has(NanNew<String>("chown")) ? new NanCallback(ops->Get(NanNew<String>("chown")).As<Function>()) : NULL;
-  b->ops_chmod = ops->Has(NanNew<String>("chmod")) ? new NanCallback(ops->Get(NanNew<String>("chmod")).As<Function>()) : NULL;
-  b->ops_mknod = ops->Has(NanNew<String>("mknod")) ? new NanCallback(ops->Get(NanNew<String>("mknod")).As<Function>()) : NULL;
-  b->ops_setxattr = ops->Has(NanNew<String>("setxattr")) ? new NanCallback(ops->Get(NanNew<String>("setxattr")).As<Function>()) : NULL;
-  b->ops_getxattr = ops->Has(NanNew<String>("getxattr")) ? new NanCallback(ops->Get(NanNew<String>("getxattr")).As<Function>()) : NULL;
-  b->ops_open = ops->Has(NanNew<String>("open")) ? new NanCallback(ops->Get(NanNew<String>("open")).As<Function>()) : NULL;
-  b->ops_opendir = ops->Has(NanNew<String>("opendir")) ? new NanCallback(ops->Get(NanNew<String>("opendir")).As<Function>()) : NULL;
-  b->ops_read = ops->Has(NanNew<String>("read")) ? new NanCallback(ops->Get(NanNew<String>("read")).As<Function>()) : NULL;
-  b->ops_write = ops->Has(NanNew<String>("write")) ? new NanCallback(ops->Get(NanNew<String>("write")).As<Function>()) : NULL;
-  b->ops_release = ops->Has(NanNew<String>("release")) ? new NanCallback(ops->Get(NanNew<String>("release")).As<Function>()) : NULL;
-  b->ops_releasedir = ops->Has(NanNew<String>("releasedir")) ? new NanCallback(ops->Get(NanNew<String>("releasedir")).As<Function>()) : NULL;
-  b->ops_create = ops->Has(NanNew<String>("create")) ? new NanCallback(ops->Get(NanNew<String>("create")).As<Function>()) : NULL;
-  b->ops_utimens = ops->Has(NanNew<String>("utimens")) ? new NanCallback(ops->Get(NanNew<String>("utimens")).As<Function>()) : NULL;
-  b->ops_unlink = ops->Has(NanNew<String>("unlink")) ? new NanCallback(ops->Get(NanNew<String>("unlink")).As<Function>()) : NULL;
-  b->ops_rename = ops->Has(NanNew<String>("rename")) ? new NanCallback(ops->Get(NanNew<String>("rename")).As<Function>()) : NULL;
-  b->ops_link = ops->Has(NanNew<String>("link")) ? new NanCallback(ops->Get(NanNew<String>("link")).As<Function>()) : NULL;
-  b->ops_symlink = ops->Has(NanNew<String>("symlink")) ? new NanCallback(ops->Get(NanNew<String>("symlink")).As<Function>()) : NULL;
-  b->ops_mkdir = ops->Has(NanNew<String>("mkdir")) ? new NanCallback(ops->Get(NanNew<String>("mkdir")).As<Function>()) : NULL;
-  b->ops_rmdir = ops->Has(NanNew<String>("rmdir")) ? new NanCallback(ops->Get(NanNew<String>("rmdir")).As<Function>()) : NULL;
-  b->ops_destroy = ops->Has(NanNew<String>("destroy")) ? new NanCallback(ops->Get(NanNew<String>("destroy")).As<Function>()) : NULL;
+  b->ops_init = ops->Has(Nan::New<String>("init").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("init").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_error = ops->Has(Nan::New<String>("error").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("error").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_access = ops->Has(Nan::New<String>("access").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("access").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_statfs = ops->Has(Nan::New<String>("statfs").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("statfs").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_getattr = ops->Has(Nan::New<String>("getattr").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("getattr").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_fgetattr = ops->Has(Nan::New<String>("fgetattr").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("fgetattr").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_flush = ops->Has(Nan::New<String>("flush").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("flush").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_fsync = ops->Has(Nan::New<String>("fsync").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("fsync").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_fsyncdir = ops->Has(Nan::New<String>("fsyncdir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("fsyncdir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_readdir = ops->Has(Nan::New<String>("readdir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("readdir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_truncate = ops->Has(Nan::New<String>("truncate").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("truncate").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_ftruncate = ops->Has(Nan::New<String>("ftruncate").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("ftruncate").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_readlink = ops->Has(Nan::New<String>("readlink").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("readlink").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_chown = ops->Has(Nan::New<String>("chown").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("chown").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_chmod = ops->Has(Nan::New<String>("chmod").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("chmod").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_mknod = ops->Has(Nan::New<String>("mknod").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("mknod").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_setxattr = ops->Has(Nan::New<String>("setxattr").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("setxattr").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_getxattr = ops->Has(Nan::New<String>("getxattr").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("getxattr").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_open = ops->Has(Nan::New<String>("open").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("open").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_opendir = ops->Has(Nan::New<String>("opendir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("opendir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_read = ops->Has(Nan::New<String>("read").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("read").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_write = ops->Has(Nan::New<String>("write").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("write").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_release = ops->Has(Nan::New<String>("release").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("release").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_releasedir = ops->Has(Nan::New<String>("releasedir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("releasedir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_create = ops->Has(Nan::New<String>("create").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("create").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_utimens = ops->Has(Nan::New<String>("utimens").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("utimens").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_unlink = ops->Has(Nan::New<String>("unlink").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("unlink").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_rename = ops->Has(Nan::New<String>("rename").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("rename").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_link = ops->Has(Nan::New<String>("link").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("link").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_symlink = ops->Has(Nan::New<String>("symlink").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("symlink").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_mkdir = ops->Has(Nan::New<String>("mkdir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("mkdir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_rmdir = ops->Has(Nan::New<String>("rmdir").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("rmdir").ToLocalChecked()).As<Function>()) : NULL;
+  b->ops_destroy = ops->Has(Nan::New<String>("destroy").ToLocalChecked()) ? new Nan::Callback(ops->Get(Nan::New<String>("destroy").ToLocalChecked()).As<Function>()) : NULL;
 
-  Local<Value> tmp[] = {NanNew<Number>(index), NanNew<FunctionTemplate>(OpCallback)->GetFunction()};
-  b->callback = new NanCallback(callback_constructor->Call(2, tmp).As<Function>());
+  Local<Value> tmp[] = {Nan::New<Number>(index), Nan::New<FunctionTemplate>(OpCallback)->GetFunction()};
+  b->callback = new Nan::Callback(callback_constructor->Call(2, tmp).As<Function>());
 
   strcpy(b->mnt, *path);
   strcpy(b->mntopts, "-o");
 
-  Local<Array> options = ops->Get(NanNew<String>("options")).As<Array>();
+  Local<Array> options = ops->Get(Nan::New<String>("options").ToLocalChecked()).As<Array>();
   if (options->IsArray()) {
     for (uint32_t i = 0; i < options->Length(); i++) {
-      NanUtf8String option(options->Get(i));
+      Nan::Utf8String option(options->Get(i));
       if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
       strcat(b->mntopts, *option);
     }
@@ -1167,14 +1165,12 @@ NAN_METHOD(Mount) {
   b->async.data = b;
 
   thread_create(&(b->thread), bindings_thread, b);
-
-  NanReturnUndefined();
 }
 
-class UnmountWorker : public NanAsyncWorker {
+class UnmountWorker : public Nan::AsyncWorker {
  public:
-  UnmountWorker(NanCallback *callback, char *path)
-    : NanAsyncWorker(callback), path(path) {}
+  UnmountWorker(Nan::Callback *callback, char *path)
+    : Nan::AsyncWorker(callback), path(path) {}
   ~UnmountWorker() {}
 
   void Execute () {
@@ -1183,7 +1179,7 @@ class UnmountWorker : public NanAsyncWorker {
   }
 
   void HandleOKCallback () {
-    NanScope();
+    Nan::HandleScope scope;
     callback->Call(0, NULL);
   }
 
@@ -1192,49 +1188,39 @@ class UnmountWorker : public NanAsyncWorker {
 };
 
 NAN_METHOD(SetCallback) {
-  NanScope();
-  callback_constructor = new NanCallback(args[0].As<Function>());
-  NanReturnUndefined();
+  callback_constructor = new Nan::Callback(info[0].As<Function>());
 }
 
 NAN_METHOD(SetBuffer) {
-  NanScope();
-  NanAssignPersistent(buffer_constructor, args[0].As<Function>());
-  NanReturnUndefined();
+  buffer_constructor.Reset(info[0].As<Function>());
 }
 
 NAN_METHOD(PopulateContext) {
-  NanScope();
-  if (bindings_current == NULL) return NanThrowError("You have to call this inside a fuse operation");
+  if (bindings_current == NULL) return Nan::ThrowError("You have to call this inside a fuse operation");
 
-  Local<Object> ctx = args[0].As<Object>();
-  ctx->Set(NanNew<String>("uid"), NanNew(bindings_current->context_uid));
-  ctx->Set(NanNew<String>("gid"), NanNew(bindings_current->context_gid));
-  ctx->Set(NanNew<String>("pid"), NanNew(bindings_current->context_pid));
-
-  NanReturnUndefined();
+  Local<Object> ctx = info[0].As<Object>();
+  ctx->Set(Nan::New<String>("uid").ToLocalChecked(), Nan::New(bindings_current->context_uid));
+  ctx->Set(Nan::New<String>("gid").ToLocalChecked(), Nan::New(bindings_current->context_gid));
+  ctx->Set(Nan::New<String>("pid").ToLocalChecked(), Nan::New(bindings_current->context_pid));
 }
 
 NAN_METHOD(Unmount) {
-  NanScope();
-
-  if (!args[0]->IsString()) return NanThrowError("mnt must be a string");
-  NanUtf8String path(args[0]);
-  Local<Function> callback = args[1].As<Function>();
+  if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
+  Nan::Utf8String path(info[0]);
+  Local<Function> callback = info[1].As<Function>();
 
   char *path_alloc = (char *) malloc(1024);
   strcpy(path_alloc, *path);
 
-  NanAsyncQueueWorker(new UnmountWorker(new NanCallback(callback), path_alloc));
-  NanReturnUndefined();
+  Nan::AsyncQueueWorker(new UnmountWorker(new Nan::Callback(callback), path_alloc));
 }
 
 void Init(Handle<Object> exports) {
-  exports->Set(NanNew("setCallback"), NanNew<FunctionTemplate>(SetCallback)->GetFunction());
-  exports->Set(NanNew("setBuffer"), NanNew<FunctionTemplate>(SetBuffer)->GetFunction());
-  exports->Set(NanNew("mount"), NanNew<FunctionTemplate>(Mount)->GetFunction());
-  exports->Set(NanNew("unmount"), NanNew<FunctionTemplate>(Unmount)->GetFunction());
-  exports->Set(NanNew("populateContext"), NanNew<FunctionTemplate>(PopulateContext)->GetFunction());
+  exports->Set(Nan::New("setCallback").ToLocalChecked(), Nan::New<FunctionTemplate>(SetCallback)->GetFunction());
+  exports->Set(Nan::New("setBuffer").ToLocalChecked(), Nan::New<FunctionTemplate>(SetBuffer)->GetFunction());
+  exports->Set(Nan::New("mount").ToLocalChecked(), Nan::New<FunctionTemplate>(Mount)->GetFunction());
+  exports->Set(Nan::New("unmount").ToLocalChecked(), Nan::New<FunctionTemplate>(Unmount)->GetFunction());
+  exports->Set(Nan::New("populateContext").ToLocalChecked(), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction());
 }
 
 NODE_MODULE(fuse_bindings, Init)
