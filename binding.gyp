@@ -7,12 +7,20 @@
         ],
         "conditions": [
             ['OS!="win"', {
+                'variables':
+                {
+                    'fuse_includes%' : '<!(pkg-config fuse --cflags-only-I | sed s/-I//g)',
+                    'fuse_libraries%': '',
+                },
                 "include_dirs": [
-                    "<!@(pkg-config fuse --cflags-only-I | sed s/-I//g)"
+                    "<@(fuse_includes)"
+                ],
+                'library_dirs': [
+                  '<@(fuse_libraries)',
                 ],
                 "link_settings": {
                     "libraries": [
-                        "<!@(pkg-config --libs-only-L --libs-only-l fuse)"
+                        "-lfuse"
                     ]
                 }
             }],
