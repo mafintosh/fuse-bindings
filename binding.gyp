@@ -9,18 +9,19 @@
             ['OS!="win"', {
                 'variables':
                 {
-                    'fuse_includes%' : '<!(pkg-config fuse --cflags-only-I | sed s/-I//g)',
-                    'fuse_libraries%': '',
+                    'fuse__include_dirs%': '<!(pkg-config fuse --cflags-only-I | sed s/-I//g)',
+                    'fuse__library_dirs%': '',
+                    'fuse__libraries%'   : '<!(pkg-config --libs-only-L --libs-only-l fuse)',
                 },
                 "include_dirs": [
-                    "<@(fuse_includes)"
+                    "<@(fuse__include_dirs)"
                 ],
                 'library_dirs': [
-                  '<@(fuse_libraries)',
+                  '<@(fuse__library_dirs)',
                 ],
                 "link_settings": {
                     "libraries": [
-                        "-lfuse"
+                        "<@(fuse__libraries)"
                     ]
                 }
             }],
