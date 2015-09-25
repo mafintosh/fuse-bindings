@@ -1,3 +1,5 @@
 node_modules
 .nadconfig.mk
 build
+deps/
+npm-debug.log
