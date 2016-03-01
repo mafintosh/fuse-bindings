@@ -30,10 +30,11 @@ exports.context = function () {
   return ctx
 }
 
-exports.mount = function (mnt, ops, cb) {
+exports.mount = function (mnt, ops, opts, cb) {
+  if (typeof opts === 'function') return exports.mount(mnt, ops, null, opts)
   if (!cb) cb = noop
 
-  ops = xtend(ops) // clone
+  ops = xtend(ops, opts) // clone
   if (/\*|(^,)fuse-bindings(,$)/.test(process.env.DEBUG)) ops.options = ['debug'].concat(ops.options || [])
   mnt = path.resolve(mnt)
 
