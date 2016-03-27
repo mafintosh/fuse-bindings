@@ -692,7 +692,7 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
 }
 #else
 NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
-  return Nan::New<Date>(*out * 1000.0);
+  return Nan::New<Date>(*out * 1000.0).ToLocalChecked();
 }
 
 NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
