@@ -38,10 +38,18 @@ void thread_join (HANDLE thread) {
 }
 
 void fusermount (char *path) {
-    char* dokanPath = getenv("DOKAN_INSTALL_DIR");
+    char* dokanPath = getenv("DokanLibrary1");
     char cmdLine[MAX_PATH];
 
-    if(dokanPath) sprintf(cmdLine, "\"%s/dokanctl.exe\" /u %s", dokanPath, path);
+    if(dokanPath) {
+        // Let's make sure there aren't no double slashes
+        const char* dokanPathLast = dokanPath + strlen(dokanPath) - 1;
+
+        const char* potentialEndSlash =
+            (*dokanPathLast == '/' || *dokanPathLast == '\\') ? "" : "\\";
+
+        sprintf(cmdLine, "\"%s%sdokanctl.exe\" /u %s", dokanPath, potentialEndSlash, path);
+    }
     else sprintf(cmdLine, "dokanctl.exe /u %s", path);
 
     STARTUPINFO info = {sizeof(info)};

@@ -5,6 +5,10 @@
 #include <fuse.h>
 #include <fuse_opt.h>
 
+#ifndef _WIN32
+#define FUSE_STAT stat
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -56,7 +60,7 @@ enum bindings_ops_t {
 
 static Nan::Persistent<Function> buffer_constructor;
 static Nan::Callback *callback_constructor;
-static struct stat empty_stat;
+static struct FUSE_STAT empty_stat;
 
 struct bindings_t {
   int index;
@@ -217,7 +221,7 @@ static int bindings_ftruncate (const char *path, FUSE_OFF_T size, struct fuse_fi
   return bindings_call(b);
 }
 
-static int bindings_getattr (const char *path, struct stat *stat) {
+static int bindings_getattr (const char *path, struct FUSE_STAT *stat) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_GETATTR;
@@ -227,7 +231,7 @@ static int bindings_getattr (const char *path, struct stat *stat) {
   return bindings_call(b);
 }
 
-static int bindings_fgetattr (const char *path, struct stat *stat, struct fuse_file_info *info) {
+static int bindings_fgetattr (const char *path, struct FUSE_STAT *stat, struct fuse_file_info *info) {
   bindings_t *b = bindings_get_context();
 
   b->op = OP_FGETATTR;
@@ -676,7 +680,6 @@ static thread_fn_rtn_t bindings_thread (void *data) {
   return 0;
 }
 
-#ifndef _WIN32
 NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
   int ms = (out->tv_nsec / 1000);
   return Nan::New<Date>(out->tv_sec * 1000 + ms).ToLocalChecked();
@@ -690,19 +693,8 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
   out->tv_sec = secs;
   out->tv_nsec = ns;
 }
-#else
-NAN_INLINE static Local<Date> bindings_get_date (time_t *out) {
-  return Nan::New<Date>(*out * 1000.0).ToLocalChecked();
-}
 
-NAN_INLINE static void bindings_set_date (time_t *out, Local<Date> date) {
-  double ms = date->NumberValue();
-  time_t secs = (time_t)(ms / 1000.0);
-  *out = secs;
-}
-#endif
-
-NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) {
+NAN_INLINE static void bindings_set_stat (struct FUSE_STAT *stat, Local<Object> obj) {
   if (obj->Has(LOCAL_STRING("dev"))) stat->st_dev = obj->Get(LOCAL_STRING("dev"))->NumberValue();
   if (obj->Has(LOCAL_STRING("ino"))) stat->st_ino = obj->Get(LOCAL_STRING("ino"))->NumberValue();
   if (obj->Has(LOCAL_STRING("mode"))) stat->st_mode = obj->Get(LOCAL_STRING("mode"))->Uint32Value();
@@ -711,18 +703,12 @@ NAN_INLINE static void bindings_set_stat (struct stat *stat, Local<Object> obj) 
   if (obj->Has(LOCAL_STRING("gid"))) stat->st_gid = obj->Get(LOCAL_STRING("gid"))->NumberValue();
   if (obj->Has(LOCAL_STRING("rdev"))) stat->st_rdev = obj->Get(LOCAL_STRING("rdev"))->NumberValue();
   if (obj->Has(LOCAL_STRING("size"))) stat->st_size = obj->Get(LOCAL_STRING("size"))->NumberValue();
-#ifndef _WIN32
   if (obj->Has(LOCAL_STRING("blocks"))) stat->st_blocks = obj->Get(LOCAL_STRING("blocks"))->NumberValue();
   if (obj->Has(LOCAL_STRING("blksize"))) stat->st_blksize = obj->Get(LOCAL_STRING("blksize"))->NumberValue();
-#endif
 #ifdef __APPLE__
   if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(LOCAL_STRING("mtime")).As<Date>());
   if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(LOCAL_STRING("ctime")).As<Date>());
   if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(LOCAL_STRING("atime")).As<Date>());
-#elif defined(_WIN32)
-  if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtime, obj->Get(LOCAL_STRING("mtime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctime, obj->Get(LOCAL_STRING("ctime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atime, obj->Get(LOCAL_STRING("atime")).As<Date>());
 #else
   if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(LOCAL_STRING("mtime")).As<Date>());
   if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(LOCAL_STRING("ctime")).As<Date>());
@@ -766,7 +752,7 @@ NAN_METHOD(OpCallback) {
 
       case OP_GETATTR:
       case OP_FGETATTR: {
-        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_stat((struct stat *) b->data, info[2].As<Object>());
+        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_stat((struct FUSE_STAT *) b->data, info[2].As<Object>());
       }
       break;
 
@@ -1041,11 +1027,7 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     return;
 
     case OP_UTIMENS: {
-#ifdef _WIN32
-      time_t *tv = (time_t *) b->data;
-#else
       struct timespec *tv = (struct timespec *) b->data;
-#endif
       Local<Value> tmp[] = {LOCAL_STRING(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
       bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
