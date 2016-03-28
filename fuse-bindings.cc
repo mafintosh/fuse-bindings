@@ -12,7 +12,10 @@
 #include <fuse.h>
 #include <fuse_opt.h>
 
-#ifndef _WIN32
+#ifndef _MSC_VER
+// Need to use FUSE_STAT when using Dokany with Visual Studio.
+// To keep things simple, when not using Visual Studio,
+// define FUSE_STAT to be "stat" so we can use FUSE_STAT in the code anyway.
 #define FUSE_STAT stat
 #endif
 
