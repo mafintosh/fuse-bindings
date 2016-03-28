@@ -29,7 +29,6 @@
                 "variables": {
                     'dokan__install_dir%': '$(DokanLibrary1)/include/fuse'
                 },
-                "defines": ["_CRT_NO_TIME_T"],
                 "include_dirs": [
                     "<(dokan__install_dir)",
                     "$(INCLUDE)"

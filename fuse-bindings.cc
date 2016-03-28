@@ -2,6 +2,13 @@
 
 #define FUSE_USE_VERSION 29
 
+#if defined(_WIN32) && _MSC_VER < 1900
+// Visual Studio 2015 adds struct timespec,
+// this #define will make Dokany define its
+// own struct timespec on earlier versions
+#define _CRT_NO_TIME_T
+#endif
+
 #include <fuse.h>
 #include <fuse_opt.h>
 
