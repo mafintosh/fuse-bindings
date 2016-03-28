@@ -15,14 +15,16 @@ You need to have FUSE installed (or Dokany on Windows)
 
 * On Linux/Ubuntu `sudo apt-get install libfuse-dev`
 * On OSX install [OSXFuse](http://osxfuse.github.com/) and pkg-config, `brew install pkg-config`
-* On Windows see `Windows` down below...
+* On Windows install [Dokany](https://github.com/dokan-dev/dokany)
 
 ### Windows
 **WARNING**: Dokany is still not quite stable. It can cause BSODs. Be careful.
 
-Using this on Windows is slightly more complicated. You need to install [Dokany](https://github.com/dokan-dev/dokany) (for `dokanfuse.lib`, `dokanctl.exe`, driver and service) **and** clone its repo (for the headers).
+~~Using this on Windows is slightly more complicated. You need to install [Dokany](https://github.com/dokan-dev/dokany) (for `dokanfuse.lib`, `dokanctl.exe`, driver and service) **and** clone its repo (for the headers).~~
 
-Once the Dokany repo is cloned, you also need to set environment variable `DOKAN_INSTALL_DIR` to the path to `DokenLibrary` of your Dokany installaton, and `DOKAN_FUSE_INCLUDE` to the path to `*dokany repo*\dokan_fuse\include`.
+~~Once the Dokany repo is cloned, you also need to set environment variable `DOKAN_INSTALL_DIR` to the path to `DokenLibrary` of your Dokany installaton, and `DOKAN_FUSE_INCLUDE` to the path to `*dokany repo*\dokan_fuse\include`.~~
+
+**EDIT**: Dokany now includes needed headers and sets proper environment variables when installing! Just install Dokany and things should work! (Drop an issue otherwise)
 
 ## Usage
 
