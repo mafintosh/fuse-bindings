@@ -12,14 +12,14 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.0.9",
-    "prebuild": "^2.8.1",
-    "xtend": "^4.0.0"
+    "nan": "^2.3.5",
+    "prebuild": "^4.2.2",
+    "xtend": "^4.0.1"
   },
   "devDependencies": {
     "concat-stream": "^1.4.7",
-    "standard": "^3.2.0",
-    "tape": "^3.5.0"
+    "standard": "^7.1.2",
+    "tape": "^4.6.0"
   },
   "repository": {
     "type": "git",
