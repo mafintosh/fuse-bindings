@@ -123,4 +123,4 @@ typedef thread_fn_rtn_t(*thread_fn)(void*);
 void thread_create (abstr_thread_t*, thread_fn, void*);
 void thread_join (abstr_thread_t);
 
-void fusermount (char*);
+int fusermount (char*);

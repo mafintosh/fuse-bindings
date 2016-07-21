@@ -55,8 +55,11 @@ fuse.mount(mountPath, {
 })
 
 process.on('SIGINT', function () {
-  fuse.unmount(mountPath, function () {
-    console.log('filesystem at ' + mountPath + ' unmounted')
-    process.exit()
+  fuse.unmount(mountPath, function (err) {
+    if (err) {
+      console.log('filesystem at ' + mountPath + ' not unmounted', err)
+    } else {
+      console.log('filesystem at ' + mountPath + ' unmounted')
+    }
   })
 })
