@@ -1111,7 +1111,6 @@ NAN_METHOD(Mount) {
   mutex_unlock(&mutex);
 
   memset(&empty_stat, 0, sizeof(empty_stat));
-  memset(b, 0, sizeof(bindings_t));
 
   Nan::Utf8String path(info[0]);
   Local<Object> ops = info[1].As<Object>();
