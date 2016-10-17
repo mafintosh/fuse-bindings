@@ -1,5 +1,31 @@
 #include "abstractions.h"
 
+#ifndef _WIN32
+
+#include <unistd.h>
+#include <sys/wait.h>
+
+int execute_command_and_wait (char* argv[]) {
+    // Fork our running process.
+    pid_t cpid = vfork();
+
+    // Check if we are the observer or the new process.
+    if (cpid > 0) {
+        int status = 0;
+        waitpid(cpid, &status, 0);
+        return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    } else {
+        // At this point we are on our child process.
+        execvp(argv[0], argv);
+        exit(1);
+
+        // Something failed.
+        return -1;
+    }
+}
+
+#endif
+
 #ifdef __APPLE__
 
 #include <unistd.h>
@@ -17,12 +43,10 @@ void thread_join (abstr_thread_t thread) {
     pthread_join(thread, NULL);
 }
 
-void fusermount (char *path) {
+int fusermount (char *path) {
     char *argv[] = {(char *) "umount", path, NULL};
 
-    pid_t cpid = vfork();
-    if (cpid > 0) waitpid(cpid, NULL, 0);
-    else execvp(argv[0], argv);
+    return execute_command_and_wait(argv);
 }
 
 #elif defined(_WIN32)
@@ -37,7 +61,7 @@ void thread_join (HANDLE thread) {
     WaitForSingleObject(thread, INFINITE);
 }
 
-void fusermount (char *path) {
+int fusermount (char *path) {
     char* dokanPath = getenv("DokanLibrary1");
     char cmdLine[MAX_PATH];
 
@@ -57,8 +81,14 @@ void fusermount (char *path) {
     CreateProcess(NULL, cmdLine, NULL, NULL, false, CREATE_NO_WINDOW, NULL, NULL, &info, &procInfo);
 
     WaitForSingleObject(procInfo.hProcess, INFINITE);
+
+    DWORD exitCode = -1;
+    GetExitCodeProcess(procInfo.hProcess, &exitCode);
+
     CloseHandle(procInfo.hProcess);
     CloseHandle(procInfo.hThread);
+
+    return exitCode;
 
     // dokanctl.exe requires admin permissions for some reason, so if node is not run as admin,
     // it'll fail to create the process for unmounting. The path will be unmounted once
@@ -82,12 +112,10 @@ void thread_join (abstr_thread_t thread) {
     pthread_join(thread, NULL);
 }
 
-void fusermount (char *path) {
+int fusermount (char *path) {
     char *argv[] = {(char *) "fusermount", (char *) "-q", (char *) "-u", path, NULL};
 
-    pid_t cpid = vfork();
-    if (cpid > 0) waitpid(cpid, NULL, 0);
-    else execvp(argv[0], argv);
+    return execute_command_and_wait(argv);
 }
 
 #endif

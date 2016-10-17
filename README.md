@@ -14,7 +14,9 @@ any buffer copys in read/write. It also supports unmount and mouting of multiple
 You need to have FUSE installed (or Dokany on Windows)
 
 * On Linux/Ubuntu `sudo apt-get install libfuse-dev`
-* On OSX install [OSXFuse](http://osxfuse.github.com/) and pkg-config, `brew install pkg-config`
+* On OSX
+  * if you use Brew, install [OSXFuse](http://osxfuse.github.com/) and `brew install pkg-config`
+  * if you use MacPorts, `sudo port install osxfuse +devel`
 * On Windows install [Dokany](https://github.com/dokan-dev/dokany)
 
 ### Windows
