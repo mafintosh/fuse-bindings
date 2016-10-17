@@ -141,17 +141,20 @@ static bindings_t *bindings_find_mounted (char *path) {
   return NULL;
 }
 
-static void bindings_fusermount (char *path) {
-  fusermount(path);
+static int bindings_fusermount (char *path) {
+  return fusermount(path);
 }
 
-static void bindings_unmount (char *path) {
+static int bindings_unmount (char *path) {
   mutex_lock(&mutex);
   bindings_t *b = bindings_find_mounted(path);
-  if (b != NULL) b->gc = 1;
-  bindings_fusermount(path);
-  if (b != NULL) thread_join(b->thread);
+  int result = bindings_fusermount(path);
+  if (b != NULL && result == 0) b->gc = 1;
   mutex_unlock(&mutex);
+
+  if (b != NULL && result == 0) thread_join(b->thread);
+
+  return result;
 }
 
 #if (NODE_MODULE_VERSION > NODE_0_10_MODULE_VERSION && NODE_MODULE_VERSION < IOJS_3_0_MODULE_VERSION)
@@ -1108,7 +1111,6 @@ NAN_METHOD(Mount) {
   mutex_unlock(&mutex);
 
   memset(&empty_stat, 0, sizeof(empty_stat));
-  memset(b, 0, sizeof(bindings_t));
 
   Nan::Utf8String path(info[0]);
   Local<Object> ops = info[1].As<Object>();
@@ -1172,12 +1174,16 @@ NAN_METHOD(Mount) {
 class UnmountWorker : public Nan::AsyncWorker {
  public:
   UnmountWorker(Nan::Callback *callback, char *path)
-    : Nan::AsyncWorker(callback), path(path) {}
+    : Nan::AsyncWorker(callback), path(path), result(0) {}
   ~UnmountWorker() {}
 
   void Execute () {
-    bindings_unmount(path);
+    result = bindings_unmount(path);
     free(path);
+
+    if (result != 0) {
+      SetErrorMessage("Error");
+    }
   }
 
   void HandleOKCallback () {
@@ -1187,6 +1193,7 @@ class UnmountWorker : public Nan::AsyncWorker {
 
  private:
   char *path;
+  int result;
 };
 
 NAN_METHOD(SetCallback) {
