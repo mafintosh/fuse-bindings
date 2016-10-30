@@ -26,15 +26,25 @@
                 }
             }],
             ['OS=="win"', {
+                "variables": {
+                    'dokan__install_dir%': '$(DokanLibrary1)/include/fuse'
+                },
                 "include_dirs": [
-                    "$(DOKAN_FUSE_INCLUDE)",
+                    "<(dokan__install_dir)",
                     "$(INCLUDE)"
                 ],
                 "link_settings": {
                     "libraries": [
-                        "<!(echo %DOKAN_INSTALL_DIR%)/dokanfuse.lib"
+                        "<(dokan__library)"
                     ]
-                }
+                },
+                "conditions": [
+                    ['target_arch=="x64"', {
+                        "variables": { 'dokan__library%': '$(DokanLibrary1_LibraryPath_x64)/dokanfuse1' }
+                    }, {
+                        "variables": { 'dokan__library%': '$(DokanLibrary1_LibraryPath_x86)/dokanfuse1' }
+                    }]
+                ]
             }]
         ],
         "configurations": {
