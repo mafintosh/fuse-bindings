@@ -77,7 +77,7 @@ fuse.mount('./mnt', {
   },
   read: function (path, fd, buf, len, pos, cb) {
     console.log('read(%s, %d, %d, %d)', path, fd, len, pos)
-    var str = 'hello world\n'.slice(pos)
+    var str = 'hello world\n'.slice(pos, pos + len)
     if (!str) return cb(0)
     buf.write(str)
     return cb(str.length)
