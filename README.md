@@ -85,7 +85,9 @@ fuse.mount('./mnt', {
 })
 
 process.on('SIGINT', function () {
-  fuse.unmount('./mnt', function () {
+  fuse.unmount('./mnt', function (err) {
+    if (err) throw err
+    
     process.exit()
   })
 })
