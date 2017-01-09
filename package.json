@@ -4,7 +4,7 @@
   "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
   "main": "index.js",
   "scripts": {
-    "install": "prebuild --install",
+    "install": "prebuild-install || node-gyp rebuild",
     "test": "standard && tape test/*.js",
     "rebuild": "prebuild --compile",
     "prebuild": "prebuild --all --strip --verbose"
@@ -12,14 +12,15 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.3.5",
-    "prebuild": "^4.2.2",
+    "nan": "^2.5.0",
+    "prebuild-install": "^2.1.0",
     "xtend": "^4.0.1"
   },
   "devDependencies": {
-    "concat-stream": "^1.4.7",
-    "standard": "^7.1.2",
-    "tape": "^4.6.0"
+    "concat-stream": "^1.6.0",
+    "prebuild": "^6.0.0",
+    "standard": "^8.6.0",
+    "tape": "^4.6.3"
   },
   "repository": {
     "type": "git",
