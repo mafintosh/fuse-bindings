@@ -35,7 +35,9 @@ Try creating an empty folder called `mnt` and run the below example
 ``` js
 var fuse = require('fuse-bindings')
 
-fuse.mount('./mnt', {
+var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\'
+
+fuse.mount(mountPath, {
   readdir: function (path, cb) {
     console.log('readdir(%s)', path)
     if (path === '/') return cb(0, ['test'])
@@ -50,8 +52,8 @@ fuse.mount('./mnt', {
         ctime: new Date(),
         size: 100,
         mode: 16877,
-        uid: process.getuid(),
-        gid: process.getgid()
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
@@ -63,8 +65,8 @@ fuse.mount('./mnt', {
         ctime: new Date(),
         size: 12,
         mode: 33188,
-        uid: process.getuid(),
-        gid: process.getgid()
+        uid: process.getuid ? process.getuid() : 0,
+        gid: process.getgid ? process.getgid() : 0
       })
       return
     }
@@ -82,13 +84,18 @@ fuse.mount('./mnt', {
     buf.write(str)
     return cb(str.length)
   }
+}, function (err) {
+  if (err) throw err
+  console.log('filesystem mounted on ' + mountPath)
 })
 
 process.on('SIGINT', function () {
-  fuse.unmount('./mnt', function (err) {
-    if (err) throw err
-    
-    process.exit()
+  fuse.unmount(mountPath, function (err) {
+    if (err) {
+      console.log('filesystem at ' + mountPath + ' not unmounted', err)
+    } else {
+      console.log('filesystem at ' + mountPath + ' unmounted')
+    }
   })
 })
 ```
