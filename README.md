@@ -245,6 +245,16 @@ Currently you can read the attribute value being set in `buffer` at `offset`.
 Called when extended attributes is being read.
 Currently you have to write the result to the provided `buffer` at `offset`.
 
+#### `ops.listxattr(path, buffer, length, cb)`
+
+Called when extended attributes of a path are being listed.
+`buffer` should be filled with the extended attribute names as null-terminated strings, one after the other, up to a total of `length` in length. (`ERANGE` should be passed to the callback if `length` is insufficient.)
+The size of buffer required to hold all the names should be passed to the callback on success or if `buffer` is null.
+
+#### `ops.removexattr(path, name, cb)`
+
+Called when an extended attribute is being removed.
+
 #### `ops.open(path, flags, cb)`
 
 Called when a path is being opened. `flags` in a number containing the permissions being requested. Accepts a file descriptor after the return code in the callback.

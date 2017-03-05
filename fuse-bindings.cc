@@ -52,6 +52,8 @@ enum bindings_ops_t {
   OP_MKNOD,
   OP_SETXATTR,
   OP_GETXATTR,
+  OP_LISTXATTR,
+  OP_REMOVEXATTR,
   OP_OPEN,
   OP_OPENDIR,
   OP_READ,
@@ -107,6 +109,8 @@ struct bindings_t {
   Nan::Callback *ops_mknod;
   Nan::Callback *ops_setxattr;
   Nan::Callback *ops_getxattr;
+  Nan::Callback *ops_listxattr;
+  Nan::Callback *ops_removexattr;
   Nan::Callback *ops_open;
   Nan::Callback *ops_opendir;
   Nan::Callback *ops_read;
@@ -386,6 +390,27 @@ static int bindings_getxattr (const char *path, const char *name, char *value, s
 }
 #endif
 
+static int bindings_listxattr (const char *path, char *list, size_t size) {
+  bindings_t *b = bindings_get_context();
+
+  b->op = OP_LISTXATTR;
+  b->path = (char *) path;
+  b->data = (void *) list;
+  b->length = size;
+
+  return bindings_call(b);
+}
+
+static int bindings_removexattr (const char *path, const char *name) {
+  bindings_t *b = bindings_get_context();
+
+  b->op = OP_REMOVEXATTR;
+  b->path = (char *) path;
+  b->name = (char *) name;
+
+  return bindings_call(b);
+}
+
 static int bindings_statfs (const char *path, struct statvfs *statfs) {
   bindings_t *b = bindings_get_context();
 
@@ -586,6 +611,8 @@ static void bindings_free (bindings_t *b) {
   if (b->ops_mknod != NULL) delete b->ops_mknod;
   if (b->ops_setxattr != NULL) delete b->ops_setxattr;
   if (b->ops_getxattr != NULL) delete b->ops_getxattr;
+  if (b->ops_listxattr != NULL) delete b->ops_listxattr;
+  if (b->ops_removexattr != NULL) delete b->ops_removexattr;
   if (b->ops_statfs != NULL) delete b->ops_statfs;
   if (b->ops_open != NULL) delete b->ops_open;
   if (b->ops_opendir != NULL) delete b->ops_opendir;
@@ -639,6 +666,8 @@ static thread_fn_rtn_t bindings_thread (void *data) {
   if (b->ops_mknod != NULL) ops.mknod = bindings_mknod;
   if (b->ops_setxattr != NULL) ops.setxattr = bindings_setxattr;
   if (b->ops_getxattr != NULL) ops.getxattr = bindings_getxattr;
+  if (b->ops_listxattr != NULL) ops.listxattr = bindings_listxattr;
+  if (b->ops_removexattr != NULL) ops.removexattr = bindings_removexattr;
   if (b->ops_statfs != NULL) ops.statfs = bindings_statfs;
   if (b->ops_open != NULL) ops.open = bindings_open;
   if (b->ops_opendir != NULL) ops.opendir = bindings_opendir;
@@ -804,6 +833,8 @@ NAN_METHOD(OpCallback) {
       case OP_MKNOD:
       case OP_SETXATTR:
       case OP_GETXATTR:
+      case OP_LISTXATTR:
+      case OP_REMOVEXATTR:
       case OP_READ:
       case OP_UTIMENS:
       case OP_WRITE:
@@ -1021,6 +1052,27 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
     }
     return;
 
+    case OP_LISTXATTR: {
+      Local<Value> tmp[] = {
+        LOCAL_STRING(b->path),
+        bindings_buffer((char *) b->data, b->length),
+        Nan::New<Number>(b->length),
+        callback
+      };
+      bindings_call_op(b, b->ops_listxattr, 4, tmp);
+    }
+    return;
+
+    case OP_REMOVEXATTR: {
+      Local<Value> tmp[] = {
+        LOCAL_STRING(b->path),
+        LOCAL_STRING(b->name),
+        callback
+      };
+      bindings_call_op(b, b->ops_removexattr, 3, tmp);
+    }
+    return;
+
     case OP_MKDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_mkdir, 3, tmp);
@@ -1125,6 +1177,8 @@ NAN_METHOD(Mount) {
   b->ops_mknod = LOOKUP_CALLBACK(ops, "mknod");
   b->ops_setxattr = LOOKUP_CALLBACK(ops, "setxattr");
   b->ops_getxattr = LOOKUP_CALLBACK(ops, "getxattr");
+  b->ops_listxattr = LOOKUP_CALLBACK(ops, "listxattr");
+  b->ops_removexattr = LOOKUP_CALLBACK(ops, "removexattr");
   b->ops_open = LOOKUP_CALLBACK(ops, "open");
   b->ops_opendir = LOOKUP_CALLBACK(ops, "opendir");
   b->ops_read = LOOKUP_CALLBACK(ops, "read");
