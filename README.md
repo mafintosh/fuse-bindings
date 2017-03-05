@@ -248,8 +248,8 @@ Currently you have to write the result to the provided `buffer` at `offset`.
 #### `ops.listxattr(path, buffer, length, cb)`
 
 Called when extended attributes of a path are being listed.
-`buffer` should be filled with the extended attribute names as null-terminated strings, one after the other, up to a total of `length` in length. (`ERANGE` should be passed to the callback if `length` is insufficient.)
-The size of buffer required to hold all the names should be passed to the callback on success or if `buffer` is null.
+`buffer` should be filled with the extended attribute names as *null-terminated* strings, one after the other, up to a total of `length` in length. (`ERANGE` should be passed to the callback if `length` is insufficient.)
+The size of buffer required to hold all the names should be passed to the callback either on success, or if the supplied `length` was zero.
 
 #### `ops.removexattr(path, name, cb)`
 
