@@ -88,6 +88,7 @@ struct bindings_t {
   char mntopts[1024];
   abstr_thread_t thread;
   bindings_sem_t semaphore;
+  bindings_sem_t semaphore_readdir;
   uv_async_t async;
 
   // methods
@@ -191,10 +192,19 @@ NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
 }
 #endif
 
-NAN_INLINE static int bindings_call (bindings_t *b) {
+NAN_INLINE static int bindings_call_ex (bindings_t *b, bool isreaddir) {
   uv_async_send(&(b->async));
-  semaphore_wait(&(b->semaphore));
+  if(isreaddir){
+	semaphore_wait(&(b->semaphore_readdir));  
+  }else{
+	semaphore_wait(&(b->semaphore));  
+  }
+
   return b->result;
+}
+
+NAN_INLINE static int bindings_call (bindings_t *b) {
+  return bindings_call_ex(b, false);
 }
 
 static bindings_t *bindings_get_context () {
@@ -299,7 +309,7 @@ static int bindings_readdir (const char *path, void *buf, fuse_fill_dir_t filler
   b->data = buf;
   b->filler = filler;
 
-  return bindings_call(b);
+  return bindings_call_ex(b, true);
 }
 
 static int bindings_readlink (const char *path, char *buf, size_t len) {
@@ -772,19 +782,30 @@ NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object
   if (obj->Has(LOCAL_STRING("namemax"))) statfs->f_namemax = obj->Get(LOCAL_STRING("namemax"))->Uint32Value();
 }
 
-NAN_INLINE static void bindings_set_dirs (bindings_t *b, Local<Array> dirs) {
-  Nan::HandleScope scope;
-  for (uint32_t i = 0; i < dirs->Length(); i++) {
-    Nan::Utf8String dir(dirs->Get(i));
-    if (b->filler(b->data, *dir, &empty_stat, 0)) break;
+class SetDirWorker : public Nan::AsyncWorker {
+ public:
+  SetDirWorker(bindings_t *b, char *dir)
+    : Nan::AsyncWorker(NULL), b(b), dir(dir) {}
+  ~SetDirWorker() {}
+
+  void Execute () {
+      b->filler(b->data, dir, &empty_stat, 0);
   }
-}
+  void WorkComplete(){
+	  semaphore_signal(&(b->semaphore_readdir));
+	  free(dir);
+  }
+ private:
+  bindings_t *b;
+  char *dir;
+};
+
 
 NAN_METHOD(OpCallback) {
   bindings_t *b = bindings_mounted[info[0]->Uint32Value()];
   b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value() : 0;
   bindings_current = NULL;
-
+  
   if (!b->result) {
     switch (b->op) {
       case OP_STATFS: {
@@ -799,7 +820,20 @@ NAN_METHOD(OpCallback) {
       break;
 
       case OP_READDIR: {
-        if (info.Length() > 2 && info[2]->IsArray()) bindings_set_dirs(b, info[2].As<Array>());
+        if (info.Length() > 2 && info[2]->IsArray()){
+			Local<Array> dirs = info[2].As<Array>();
+			
+			for (uint32_t i = 0; i < dirs->Length(); i++) {
+				
+				Nan::Utf8String dir(dirs->Get(i));
+				
+				char *dir_alloc = (char *) malloc(1024);
+				strcpy(dir_alloc, *dir);
+  
+				Nan::AsyncQueueWorker(new SetDirWorker(b, dir_alloc));
+				return;
+			}
+		} 
       }
       break;
 
@@ -854,14 +888,25 @@ NAN_METHOD(OpCallback) {
   semaphore_signal(&(b->semaphore));
 }
 
+NAN_INLINE static void bindings_call_op_ex (bindings_t *b, Nan::Callback *fn, int argc, Local<Value> *argv, bool isreaddir) {
+  if (fn == NULL){
+	  if(isreaddir){
+		semaphore_signal(&(b->semaphore_readdir));
+	  }else{
+		semaphore_signal(&(b->semaphore));}  
+	  }	
+  else {
+	  fn->Call(argc, argv);
+  }
+}
+
 NAN_INLINE static void bindings_call_op (bindings_t *b, Nan::Callback *fn, int argc, Local<Value> *argv) {
-  if (fn == NULL) semaphore_signal(&(b->semaphore));
-  else fn->Call(argc, argv);
+  bindings_call_op_ex(b, fn, argc, argv, false);
 }
 
 static void bindings_dispatch (uv_async_t* handle, int status) {
   Nan::HandleScope scope;
-
+  
   bindings_t *b = bindings_current = (bindings_t *) handle->data;
   Local<Function> callback = b->callback->GetFunction();
   b->result = -1;
@@ -899,7 +944,7 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
 
     case OP_READDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
-      bindings_call_op(b, b->ops_readdir, 2, tmp);
+      bindings_call_op_ex(b, b->ops_readdir, 2, tmp, true);
     }
     return;
 
@@ -1211,6 +1256,7 @@ NAN_METHOD(Mount) {
   }
 
   semaphore_init(&(b->semaphore));
+  semaphore_init(&(b->semaphore_readdir));
   uv_async_init(uv_default_loop(), &(b->async), (uv_async_cb) bindings_dispatch);
   b->async.data = b;
 
