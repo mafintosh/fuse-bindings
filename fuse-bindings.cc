@@ -423,7 +423,7 @@ static int bindings_removexattr (const char *path, const char *name) {
 
 static int bindings_statfs (const char *path, struct statvfs *statfs) {
   bindings_t *b = bindings_get_context();
-
+  
   b->op = OP_STATFS;
   b->path = (char *) path;
   b->data = statfs;
@@ -784,20 +784,28 @@ NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object
 
 class SetDirWorker : public Nan::AsyncWorker {
  public:
-  SetDirWorker(bindings_t *b, char *dir)
-    : Nan::AsyncWorker(NULL), b(b), dir(dir) {}
+  SetDirWorker(bindings_t *b, char **dirs, int dirs_length)
+    : Nan::AsyncWorker(NULL), b(b), dirs(dirs), dirs_length(dirs_length) {}
   ~SetDirWorker() {}
 
   void Execute () {
-      b->filler(b->data, dir, &empty_stat, 0);
+	  fuse_fill_dir_t fillerToCall = b->filler;
+	  void *data = b->data;
+	  for(int i = 0; i < dirs_length; i++){
+		fillerToCall(data, dirs[i], &empty_stat, 0);
+	  }
   }
   void WorkComplete(){
 	  semaphore_signal(&(b->semaphore_readdir));
-	  free(dir);
+	  for(int i = 0; i < dirs_length; i++){
+		  free(dirs[i]);
+	  }
+	  free(dirs);
   }
  private:
   bindings_t *b;
-  char *dir;
+  char **dirs;
+  int dirs_length;
 };
 
 
@@ -823,16 +831,18 @@ NAN_METHOD(OpCallback) {
         if (info.Length() > 2 && info[2]->IsArray()){
 			Local<Array> dirs = info[2].As<Array>();
 			
+			char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
+			
 			for (uint32_t i = 0; i < dirs->Length(); i++) {
 				
 				Nan::Utf8String dir(dirs->Get(i));
 				
-				char *dir_alloc = (char *) malloc(1024);
-				strcpy(dir_alloc, *dir);
-  
-				Nan::AsyncQueueWorker(new SetDirWorker(b, dir_alloc));
-				return;
+				dirs_alloc[i] = (char *) malloc(1024);
+				strcpy(dirs_alloc[i], *dir);
 			}
+			
+			Nan::AsyncQueueWorker(new SetDirWorker(b, dirs_alloc, dirs->Length()));
+			return;
 		} 
       }
       break;
