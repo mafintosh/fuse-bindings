@@ -194,10 +194,10 @@ NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
 
 NAN_INLINE static int bindings_call_ex (bindings_t *b, bool isreaddir) {
   uv_async_send(&(b->async));
-  if(isreaddir){
-	semaphore_wait(&(b->semaphore_readdir));  
-  }else{
-	semaphore_wait(&(b->semaphore));  
+  if (isreaddir) {
+    semaphore_wait(&(b->semaphore_readdir));  
+  } else {
+    semaphore_wait(&(b->semaphore));  
   }
 
   return b->result;
@@ -789,18 +789,18 @@ class SetDirWorker : public Nan::AsyncWorker {
   ~SetDirWorker() {}
 
   void Execute () {
-	  fuse_fill_dir_t fillerToCall = b->filler;
-	  void *data = b->data;
-	  for(int i = 0; i < dirs_length; i++){
-		fillerToCall(data, dirs[i], &empty_stat, 0);
-	  }
+    fuse_fill_dir_t fillerToCall = b->filler;
+    void *data = b->data;
+    for (int i = 0; i < dirs_length; i++) {
+      fillerToCall(data, dirs[i], &empty_stat, 0);
+    }
   }
   void WorkComplete(){
-	  semaphore_signal(&(b->semaphore_readdir));
-	  for(int i = 0; i < dirs_length; i++){
-		  free(dirs[i]);
-	  }
-	  free(dirs);
+    semaphore_signal(&(b->semaphore_readdir));
+    for (int i = 0; i < dirs_length; i++) {
+      free(dirs[i]);
+    }
+    free(dirs);
   }
  private:
   bindings_t *b;
@@ -828,22 +828,22 @@ NAN_METHOD(OpCallback) {
       break;
 
       case OP_READDIR: {
-        if (info.Length() > 2 && info[2]->IsArray()){
-			Local<Array> dirs = info[2].As<Array>();
-			
-			char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
-			
-			for (uint32_t i = 0; i < dirs->Length(); i++) {
-				
-				Nan::Utf8String dir(dirs->Get(i));
-				
-				dirs_alloc[i] = (char *) malloc(1024);
-				strcpy(dirs_alloc[i], *dir);
-			}
-			
-			Nan::AsyncQueueWorker(new SetDirWorker(b, dirs_alloc, dirs->Length()));
-			return;
-		} 
+        if (info.Length() > 2 && info[2]->IsArray()) {
+          Local<Array> dirs = info[2].As<Array>();
+          
+          char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
+          
+          for (uint32_t i = 0; i < dirs->Length(); i++) {
+            
+            Nan::Utf8String dir(dirs->Get(i));
+            
+            dirs_alloc[i] = (char *) malloc(1024);
+            strcpy(dirs_alloc[i], *dir);
+          }
+          
+          Nan::AsyncQueueWorker(new SetDirWorker(b, dirs_alloc, dirs->Length()));
+          return;
+        }
       }
       break;
 
@@ -900,13 +900,13 @@ NAN_METHOD(OpCallback) {
 
 NAN_INLINE static void bindings_call_op_ex (bindings_t *b, Nan::Callback *fn, int argc, Local<Value> *argv, bool isreaddir) {
   if (fn == NULL){
-	  if(isreaddir){
-		semaphore_signal(&(b->semaphore_readdir));
-	  }else{
-		semaphore_signal(&(b->semaphore));}  
-	  }	
+    if (isreaddir) {
+      semaphore_signal(&(b->semaphore_readdir));
+    } else {
+      semaphore_signal(&(b->semaphore));}  
+    } 
   else {
-	  fn->Call(argc, argv);
+    fn->Call(argc, argv);
   }
 }
 
