@@ -100,6 +100,10 @@ process.on('SIGINT', function () {
 })
 ```
 
+## See also
+
+[fs-fuse](https://github.com/piranna/fs-fuse) is a wrapper module build on top of `fuse-bindings` that allow you to export and mount any `fs`-like object as a FUSE filesystem.
+
 ## API
 
 #### `fuse.mount(mnt, ops, [cb])`
