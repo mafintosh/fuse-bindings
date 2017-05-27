@@ -100,6 +100,8 @@ process.on('SIGINT', function () {
 })
 ```
 
+Alternatively, you can use the [fs-fuse](https://github.com/piranna/fs-fuse) module, that's a wrapper module that allow you to export and mount any `fs`-like object as a FUSE filesystem.
+
 ## API
 
 #### `fuse.mount(mnt, ops, [cb])`
