@@ -1,5 +1,4 @@
-var bindings = require('bindings')
-var fuse = bindings('fuse_bindings')
+var fuse = require('node-gyp-build')(__dirname)
 var fs = require('fs')
 var os = require('os')
 var xtend = require('xtend')
