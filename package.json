@@ -30,5 +30,6 @@
   "bugs": {
     "url": "https://github.com/mafintosh/fuse-bindings/issues"
   },
-  "homepage": "https://github.com/mafintosh/fuse-bindings"
+  "homepage": "https://github.com/mafintosh/fuse-bindings",
+  "typings": "./index.d.ts"
 }
