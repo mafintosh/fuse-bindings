@@ -149,7 +149,7 @@ declare module 'fuse-bindings' {
 		 * @param dev 
 		 * @param cb 
 		 */
-		mknod(path: string, mode: number, dev: number,
+		mknod?(path: string, mode: number, dev: number,
 			cb: (code: number) => void): void;
 
 		/**
@@ -164,7 +164,7 @@ declare module 'fuse-bindings' {
 		 * @param flags 
 		 * @param cb 
 		 */
-		setxattr(path: string, name: string, buffer: Buffer, length: number,
+		setxattr?(path: string, name: string, buffer: Buffer, length: number,
 			offset: number, flags: number, cb: (code: number) => void): void;
 		
 		/**
@@ -177,7 +177,7 @@ declare module 'fuse-bindings' {
 		 * @param offset 
 		 * @param cb 
 		 */
-		getxattr(path: string, name: string, buffer: Buffer, length: number,
+		getxattr?(path: string, name: string, buffer: Buffer, length: number,
 			offset: number, cb: (code: number) => void): void;
 		
 		/**
@@ -192,7 +192,7 @@ declare module 'fuse-bindings' {
 		 * passed to the callback either on success, or if the supplied length
 		 * was zero.
 		 */
-		listxattr(path: string, buffer: Buffer, length: number,
+		listxattr?(path: string, buffer: Buffer, length: number,
 			cb: (code: number, reqBufSize: number) => void): void;
 
 		/**
@@ -201,7 +201,7 @@ declare module 'fuse-bindings' {
 		 * @param name 
 		 * @param cb 
 		 */
-		removexattr(path: string, name: string, cb: (code: number) => void): void;
+		removexattr?(path: string, name: string, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a path is being opened.
@@ -209,7 +209,7 @@ declare module 'fuse-bindings' {
 		 * @param flags in a number containing the permissions being requested.
 		 * @param cb accepts a file descriptor after the return code.
 		 */
-		open(path: string, flags: number,
+		open?(path: string, flags: number,
 			cb: (code: number, fd: number) => void): void;
 
 		
@@ -220,7 +220,7 @@ declare module 'fuse-bindings' {
 		 * @param flags in a number containing the permissions being requested.
 		 * @param cb accepts a file descriptor after the return code.
 		 */
-		opendir(path: string, flags: number,
+		opendir?(path: string, flags: number,
 			cb: (code: number, fd: number) => void): void;
 		
 		/**
@@ -235,7 +235,7 @@ declare module 'fuse-bindings' {
 		 * @param position 
 		 * @param cb 
 		 */
-		read(path: string, fd: number, buffer: Buffer, length: number,
+		read?(path: string, fd: number, buffer: Buffer, length: number,
 			position: number, cb: (bytesReadOrErr: number) => void): void;
 		
 		/**
@@ -249,7 +249,7 @@ declare module 'fuse-bindings' {
 		 * @param position 
 		 * @param cb 
 		 */
-		write(path: string, fd: number, buffer: Buffer, length: number,
+		write?(path: string, fd: number, buffer: Buffer, length: number,
 			position: number, cb: (bytesWrittenOrErr: number) => void): void;
 
 		/**
@@ -259,7 +259,7 @@ declare module 'fuse-bindings' {
 		 * @param fd 
 		 * @param cb 
 		 */
-		release(path: string, fd: number, cb: (code: number) => void): void;
+		release?(path: string, fd: number, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a directory's file descriptor is being released. Similar
@@ -268,7 +268,7 @@ declare module 'fuse-bindings' {
 		 * @param fd 
 		 * @param cb 
 		 */
-		releasedir(path: string, fd: number, cb: (code: number) => void): void;
+		releasedir?(path: string, fd: number, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a new file is being opened.
@@ -276,7 +276,7 @@ declare module 'fuse-bindings' {
 		 * @param mode 
 		 * @param cb 
 		 */
-		create(path: string, mode: number, cb: (code: number) => void): void;
+		create?(path: string, mode: number, cb: (code: number) => void): void;
 
 		/**
 		 * Called when the atime/mtime of a file is being changed.
@@ -285,7 +285,7 @@ declare module 'fuse-bindings' {
 		 * @param mtime 
 		 * @param cb 
 		 */
-		utimens(path: string, atime: number, mtime: number,
+		utimens?(path: string, atime: number, mtime: number,
 			cb: (code: number) => void): void;
 		
 		/**
@@ -293,7 +293,7 @@ declare module 'fuse-bindings' {
 		 * @param path 
 		 * @param cb 
 		 */
-		unlink(path: string, cb: (code: number) => void): void;
+		unlink?(path: string, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a file is being renamed.
@@ -301,7 +301,7 @@ declare module 'fuse-bindings' {
 		 * @param dest 
 		 * @param cb 
 		 */
-		rename(src: string, dest: string, cb: (code: number) => void): void;
+		rename?(src: string, dest: string, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a new link is created.
@@ -309,7 +309,7 @@ declare module 'fuse-bindings' {
 		 * @param target 
 		 * @param cb 
 		 */
-		link(path: string, target: string, cb: (code: number) => void): void;
+		link?(path: string, target: string, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a new symlink is created.
@@ -317,7 +317,7 @@ declare module 'fuse-bindings' {
 		 * @param target 
 		 * @param cb 
 		 */
-		symlink(path: string, target: string, cb: (code: number) => void): void;
+		symlink?(path: string, target: string, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a new directory is being created.
@@ -325,16 +325,16 @@ declare module 'fuse-bindings' {
 		 * @param mode 
 		 * @param cb 
 		 */
-		mkdir(path: string, mode: number, cb: (code: number) => void): void;
+		mkdir?(path: string, mode: number, cb: (code: number) => void): void;
 
 		/**
 		 * Called when a directory is being removed.
 		 * @param path 
 		 * @param cb 
 		 */
-		rmdir(path: string, cb: (code: number) => void): void;
+		rmdir?(path: string, cb: (code: number) => void): void;
 
-		destroy(cb: (code: number) => void): void;
+		destroy?(cb: (code: number) => void): void;
 
 	}
 
