@@ -334,6 +334,12 @@ declare module 'fuse-bindings' {
 		 */
 		rmdir?(path: string, cb: (code: number) => void): void;
 
+		/**
+		 * Returns the current fuse context (pid, uid, gid). Must be called
+		 * inside a fuse callback.
+		 */
+		context?(): { pid: number, uid: number, gid: number };
+
 		destroy?(cb: (code: number) => void): void;
 
 	}
