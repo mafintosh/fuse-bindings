@@ -122,7 +122,7 @@ declare module 'fuse-bindings' {
 		 * the return code.
 		 */
 		readlink?(path: string,
-			cb: (code: number, targetPathname: string) => void): void;
+			cb: (code: number|null, targetPathname: string) => void): void;
 		
 		/**
 		 * Called when ownership of a path is being changed.
