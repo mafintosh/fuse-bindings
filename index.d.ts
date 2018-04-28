@@ -34,7 +34,7 @@ declare module 'fuse-bindings' {
 		 * @param mode 
 		 * @param cb 
 		 */
-		access?(path: string, mode, cb: (code: number) => void): void;
+		access?(path: string, mode: any, cb: (code: number) => void): void;
 
 		/**
 		 * Called when the filesystem is being stat'ed.
@@ -49,7 +49,7 @@ declare module 'fuse-bindings' {
 		 * @param cb accepts a stat object (similar to the one returned in fs.stat
 		 * path, cb)) after the return code.
 		 */
-		getattr?(path: string, cb: (code: number, stats: Stats) => void): void;
+		getattr?(path: string, cb: (code: number, stats?: Stats) => void): void;
 
 		/**
 		 * Called when a file descriptor is being stat'ed. Similar to getattr().
@@ -75,7 +75,7 @@ declare module 'fuse-bindings' {
 		 * @param datasync 
 		 * @param cb 
 		 */
-		fsync?(path: string, fd: number, datasync,
+		fsync?(path: string, fd: number, datasync: any,
 			cb: (code: number) => void): void;
 		
 		/**
@@ -85,7 +85,7 @@ declare module 'fuse-bindings' {
 		 * @param datasync 
 		 * @param cb 
 		 */
-		fsyncdir?(path: string, fd: number, datasync,
+		fsyncdir?(path: string, fd: number, datasync: any,
 			cb: (code: number) => void): void;
 
 		/**
