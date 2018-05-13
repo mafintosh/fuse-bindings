@@ -142,7 +142,7 @@ Set to `true` to force mount the filesystem (will do an unmount first)
 
 ## FUSE operations
 
-Most of the [FUSE api](http://fuse.sourceforge.net/doxygen/structfuse__operations.html) is supported. In general the callback for each op should be called with `cb(returnCode, [value])` where the return code is a number (`0` for OK and `< 0` for errors). See below for a list of POSIX error codes.
+Most of the [FUSE api](https://lastlog.de/misc/fuse-doc/doc/html/structfuse__operations.html) is supported. In general the callback for each op should be called with `cb(returnCode, [value])` where the return code is a number (`0` for OK and `< 0` for errors). See below for a list of POSIX error codes.
 
 #### `ops.init(cb)`
 
