@@ -1,6 +1,0 @@
-require('./links')
-require('./misc')
-require('./read')
-require('./write')
-require('./fixtures/mnt')
-require('./fixtures/stat')

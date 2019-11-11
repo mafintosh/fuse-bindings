@@ -1369,9 +1369,8 @@ class UnmountWorker : public Nan::AsyncWorker {
   int result;
 };
 
-NAN_METHOD(SetCallback) {
-  callback_constructor = new Nan::Callback(info[0].As<Function>());
-}
+
+
 
 NAN_METHOD(SetBuffer) {
   buffer_constructor.Reset(info[0].As<Function>());
@@ -1398,16 +1397,10 @@ NAN_METHOD(Unmount) {
 }
 
 
-/*
-void Init(v8::Local<v8::Object> exports) {
-  v8::Local<v8::Context> context = exports->CreationContext();
-  exports->Set(context,
-               Nan::New("hello").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(Method)
-                       ->GetFunction(context)
-                       .ToLocalChecked());
+NAN_METHOD(SetCallback) {
+  callback_constructor = new Nan::Callback(info[0].As<Function>());
 }
- */
+
 
 void Init(v8::Local<v8::Object> exports) {
 
@@ -1419,5 +1412,6 @@ void Init(v8::Local<v8::Object> exports) {
   exports->Set(context, Nan::New("unmount").ToLocalChecked(), Nan::New<FunctionTemplate>(Unmount)->GetFunction(context).ToLocalChecked());
   exports->Set(context, Nan::New("populateContext").ToLocalChecked(), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction(context).ToLocalChecked());
 }
+
 
 NODE_MODULE(fuse_bindings, Init)
