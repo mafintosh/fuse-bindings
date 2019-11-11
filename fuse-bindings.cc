@@ -30,7 +30,8 @@
 using namespace v8;
 
 #define LOCAL_STRING(s) Nan::New<String>(s).ToLocalChecked()
-#define LOOKUP_CALLBACK(map, name) map->Has(LOCAL_STRING(name)) ? new Nan::Callback(map->Get(LOCAL_STRING(name)).As<Function>()) : NULL
+#define LOOKUP_CALLBACK(map, name) Nan::Has(map, LOCAL_STRING(name)).FromJust() ? new Nan::Callback(Nan::Get(map, LOCAL_STRING(name)).ToLocalChecked().As<Function>()) : NULL
+
 
 enum bindings_ops_t {
   OP_INIT = 0,
@@ -738,7 +739,7 @@ NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
 }
 
 NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date) {
-  double ms = date->NumberValue();
+  double ms = date->NumberValue(Nan::GetCurrentContext()).FromJust();
   time_t secs = (time_t)(ms / 1000.0);
   time_t rem = ms - (1000.0 * secs);
   time_t ns = rem * 1000000.0;
@@ -747,39 +748,101 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
 }
 
 NAN_INLINE static void bindings_set_stat (struct FUSE_STAT *stat, Local<Object> obj) {
-  if (obj->Has(LOCAL_STRING("dev"))) stat->st_dev = obj->Get(LOCAL_STRING("dev"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("ino"))) stat->st_ino = obj->Get(LOCAL_STRING("ino"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("mode"))) stat->st_mode = obj->Get(LOCAL_STRING("mode"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("nlink"))) stat->st_nlink = obj->Get(LOCAL_STRING("nlink"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("uid"))) stat->st_uid = obj->Get(LOCAL_STRING("uid"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("gid"))) stat->st_gid = obj->Get(LOCAL_STRING("gid"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("rdev"))) stat->st_rdev = obj->Get(LOCAL_STRING("rdev"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("size"))) stat->st_size = obj->Get(LOCAL_STRING("size"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("blocks"))) stat->st_blocks = obj->Get(LOCAL_STRING("blocks"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("blksize"))) stat->st_blksize = obj->Get(LOCAL_STRING("blksize"))->NumberValue();
+
+  if (Nan::Has(obj, LOCAL_STRING("dev")).FromJust()) {
+      stat->st_dev = Nan::Get(obj, LOCAL_STRING("dev")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("ino")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("ino")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("mode")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("mode")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("nlink")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("nlink")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("uid")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("uid")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("gid")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("gid")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("rdev")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("rdev")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("size")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("size")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("blocks")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("blocks")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("blksize")).FromJust()) {
+    stat->st_dev = Nan::Get(obj, LOCAL_STRING("blksize")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  }
+
+
 #ifdef __APPLE__
-  if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(LOCAL_STRING("mtime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(LOCAL_STRING("ctime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(LOCAL_STRING("atime")).As<Date>());
+
+  if (Nan::Has(obj, LOCAL_STRING("mtime")).FromJust()) {
+    bindings_set_date(&stat->st_mtimespec, Nan::Get(obj, LOCAL_STRING("mtime")).ToLocalChecked().As<Date>());
+  }
+  if (Nan::Has(obj, LOCAL_STRING("ctime")).FromJust()) {
+    bindings_set_date(&stat->st_ctimespec, Nan::Get(obj, LOCAL_STRING("ctime")).ToLocalChecked().As<Date>());
+  }
+  if (Nan::Has(obj, LOCAL_STRING("atime")).FromJust()) {
+    bindings_set_date(&stat->st_atimespec, Nan::Get(obj, LOCAL_STRING("atime")).ToLocalChecked().As<Date>());
+  }
+
 #else
-  if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(LOCAL_STRING("mtime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(LOCAL_STRING("ctime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atim, obj->Get(LOCAL_STRING("atime")).As<Date>());
+
+  if (Nan::Has(obj, LOCAL_STRING("mtime")).FromJust()) {
+    bindings_set_date(&stat->st_mtim, Nan::Get(obj, LOCAL_STRING("mtime")).ToLocalChecked().As<Date>());
+  }
+  if (Nan::Has(obj, LOCAL_STRING("ctime")).FromJust()) {
+    bindings_set_date(&stat->st_mtim, Nan::Get(obj, LOCAL_STRING("ctime")).ToLocalChecked().As<Date>());
+  }
+  if (Nan::Has(obj, LOCAL_STRING("atime")).FromJust()) {
+    bindings_set_date(&stat->st_mtim, Nan::Get(obj, LOCAL_STRING("atime")).ToLocalChecked().As<Date>());
+  }
+
 #endif
 }
 
 NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object> obj) { // from http://linux.die.net/man/2/stat
-  if (obj->Has(LOCAL_STRING("bsize"))) statfs->f_bsize = obj->Get(LOCAL_STRING("bsize"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("frsize"))) statfs->f_frsize = obj->Get(LOCAL_STRING("frsize"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("blocks"))) statfs->f_blocks = obj->Get(LOCAL_STRING("blocks"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("bfree"))) statfs->f_bfree = obj->Get(LOCAL_STRING("bfree"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("bavail"))) statfs->f_bavail = obj->Get(LOCAL_STRING("bavail"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("files"))) statfs->f_files = obj->Get(LOCAL_STRING("files"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("ffree"))) statfs->f_ffree = obj->Get(LOCAL_STRING("ffree"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("favail"))) statfs->f_favail = obj->Get(LOCAL_STRING("favail"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("fsid"))) statfs->f_fsid = obj->Get(LOCAL_STRING("fsid"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("flag"))) statfs->f_flag = obj->Get(LOCAL_STRING("flag"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("namemax"))) statfs->f_namemax = obj->Get(LOCAL_STRING("namemax"))->Uint32Value();
+
+  if (Nan::Has(obj, LOCAL_STRING("bsize")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("bsize")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("frsize")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("frsize")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("blocks")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("blocks")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("bfree")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("bfree")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("bavail")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("bavail")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("files")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("files")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("ffree")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("ffree")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("favail")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("favail")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("fsid")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("fsid")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("flag")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("flag")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
+  if (Nan::Has(obj, LOCAL_STRING("namemax")).FromJust()) {
+    statfs->f_bsize = Nan::Get(obj, LOCAL_STRING("namemax")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  }
 }
 
 class SetDirWorker : public Nan::AsyncWorker {
@@ -810,8 +873,8 @@ class SetDirWorker : public Nan::AsyncWorker {
 
 
 NAN_METHOD(OpCallback) {
-  bindings_t *b = bindings_mounted[info[0]->Uint32Value()];
-  b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value() : 0;
+  bindings_t *b = bindings_mounted[info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust()];
+  b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust() : 0;
   bindings_current = NULL;
   
   if (!b->result) {
@@ -834,8 +897,8 @@ NAN_METHOD(OpCallback) {
           char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
           
           for (uint32_t i = 0; i < dirs->Length(); i++) {
-            
-            Nan::Utf8String dir(dirs->Get(i));
+
+            Nan::Utf8String dir(dirs->Get(Nan::GetCurrentContext(), i).ToLocalChecked());
             
             dirs_alloc[i] = (char *) malloc(1024);
             strcpy(dirs_alloc[i], *dir);
@@ -851,7 +914,7 @@ NAN_METHOD(OpCallback) {
       case OP_OPEN:
       case OP_OPENDIR: {
         if (info.Length() > 2 && info[2]->IsNumber()) {
-          b->info->fh = info[2].As<Number>()->Uint32Value();
+          b->info->fh = info[2].As<Number>()->Uint32Value(Nan::GetCurrentContext()).FromJust();
         }
       }
       break;
@@ -906,7 +969,7 @@ NAN_INLINE static void bindings_call_op_ex (bindings_t *b, Nan::Callback *fn, in
       semaphore_signal(&(b->semaphore));}  
     } 
   else {
-    fn->Call(argc, argv);
+    Nan::Call(*fn, argc, argv);
   }
 }
 
@@ -1250,16 +1313,21 @@ NAN_METHOD(Mount) {
   b->ops_rmdir = LOOKUP_CALLBACK(ops, "rmdir");
   b->ops_destroy = LOOKUP_CALLBACK(ops, "destroy");
 
-  Local<Value> tmp[] = {Nan::New<Number>(index), Nan::New<FunctionTemplate>(OpCallback)->GetFunction()};
-  b->callback = new Nan::Callback(callback_constructor->Call(2, tmp).As<Function>());
+  Local<Value> tmp[] = {Nan::New<Number>(index),  Nan::GetFunction(Nan::New<v8::FunctionTemplate>(OpCallback)).ToLocalChecked()};
+
+  b->callback = new Nan::Callback( Nan::Call(*callback_constructor, 2, tmp).ToLocalChecked().As<Function>());
+
 
   strcpy(b->mnt, *path);
   strcpy(b->mntopts, "-o");
 
-  Local<Array> options = ops->Get(LOCAL_STRING("options")).As<Array>();
+  Local<Array> options = Nan::Get(ops, LOCAL_STRING("options")).ToLocalChecked().As<Array>();
+  //Local<Array> options = ops->Get(LOCAL_STRING("options")).As<Array>();
+
+
   if (options->IsArray()) {
     for (uint32_t i = 0; i < options->Length(); i++) {
-      Nan::Utf8String option(options->Get(i));
+      Nan::Utf8String option(options->Get(Nan::GetCurrentContext(), i).ToLocalChecked());
       if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
       strcat(b->mntopts, *option);
     }
@@ -1290,7 +1358,10 @@ class UnmountWorker : public Nan::AsyncWorker {
 
   void HandleOKCallback () {
     Nan::HandleScope scope;
-    callback->Call(0, NULL);
+    Nan::Call(*callback, 0, NULL);
+    //callback->Call(0, NULL);
+
+
   }
 
  private:
@@ -1310,9 +1381,9 @@ NAN_METHOD(PopulateContext) {
   if (bindings_current == NULL) return Nan::ThrowError("You have to call this inside a fuse operation");
 
   Local<Object> ctx = info[0].As<Object>();
-  ctx->Set(LOCAL_STRING("uid"), Nan::New(bindings_current->context_uid));
-  ctx->Set(LOCAL_STRING("gid"), Nan::New(bindings_current->context_gid));
-  ctx->Set(LOCAL_STRING("pid"), Nan::New(bindings_current->context_pid));
+  Nan::Set(ctx, LOCAL_STRING("uid"), Nan::New(bindings_current->context_uid));
+  Nan::Set(ctx, LOCAL_STRING("gid"), Nan::New(bindings_current->context_gid));
+  Nan::Set(ctx, LOCAL_STRING("pid"), Nan::New(bindings_current->context_pid));
 }
 
 NAN_METHOD(Unmount) {
@@ -1326,12 +1397,27 @@ NAN_METHOD(Unmount) {
   Nan::AsyncQueueWorker(new UnmountWorker(new Nan::Callback(callback), path_alloc));
 }
 
-void Init(Handle<Object> exports) {
-  exports->Set(LOCAL_STRING("setCallback"), Nan::New<FunctionTemplate>(SetCallback)->GetFunction());
-  exports->Set(LOCAL_STRING("setBuffer"), Nan::New<FunctionTemplate>(SetBuffer)->GetFunction());
-  exports->Set(LOCAL_STRING("mount"), Nan::New<FunctionTemplate>(Mount)->GetFunction());
-  exports->Set(LOCAL_STRING("unmount"), Nan::New<FunctionTemplate>(Unmount)->GetFunction());
-  exports->Set(LOCAL_STRING("populateContext"), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction());
+
+/*
+void Init(v8::Local<v8::Object> exports) {
+  v8::Local<v8::Context> context = exports->CreationContext();
+  exports->Set(context,
+               Nan::New("hello").ToLocalChecked(),
+               Nan::New<v8::FunctionTemplate>(Method)
+                       ->GetFunction(context)
+                       .ToLocalChecked());
+}
+ */
+
+void Init(v8::Local<v8::Object> exports) {
+
+  v8::Local<v8::Context> context = exports->CreationContext();
+
+  exports->Set(context, Nan::New("setCallback").ToLocalChecked(), Nan::New<FunctionTemplate>(SetCallback)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("setBuffer").ToLocalChecked(), Nan::New<FunctionTemplate>(SetBuffer)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("mount").ToLocalChecked(), Nan::New<FunctionTemplate>(Mount)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("unmount").ToLocalChecked(), Nan::New<FunctionTemplate>(Unmount)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("populateContext").ToLocalChecked(), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction(context).ToLocalChecked());
 }
 
 NODE_MODULE(fuse_bindings, Init)
