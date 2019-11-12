@@ -7,7 +7,8 @@
     "install": "node-gyp-build",
     "test": "standard && tape test/*.js",
     "prebuild": "prebuildify -a --strip",
-    "prebuild-ia32": "prebuildify -a --strip --arch=ia32"
+    "prebuild-ia32": "prebuildify -a --strip --arch=ia32",
+    "build-debug": "node-gyp build --debug"
   },
   "gypfile": true,
   "dependencies": {

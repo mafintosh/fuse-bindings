@@ -36,7 +36,9 @@ tape('readlink', function (t) {
     t.error(err, 'no error')
 
     fs.lstat(path.join(mnt, 'link'), function (err, stat) {
+
       t.error(err, 'no error')
+      t.error(!stat, 'no stat returned from fs.lstat()')
       t.same(stat.size, 5, 'correct size')
 
       fs.stat(path.join(mnt, 'hello'), function (err, stat) {

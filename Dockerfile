@@ -10,6 +10,7 @@ RUN apt-get install nodejs
 COPY ./ ./
 
 RUN npm install -g node-gyp
-RUN npm install --unsafe-perm
+RUN npm install
+RUN node-gyp configure && node-gyp build
 
 CMD ["node", "example"]

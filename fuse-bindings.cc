@@ -434,7 +434,6 @@ static int bindings_statfs (const char *path, struct statvfs *statfs) {
 
 static int bindings_open (const char *path, struct fuse_file_info *info) {
   bindings_t *b = bindings_get_context();
-
   b->op = OP_OPEN;
   b->path = (char *) path;
   b->mode = info->flags;
@@ -468,6 +467,7 @@ static int bindings_read (const char *path, char *buf, size_t len, FUSE_OFF_T of
 }
 
 static int bindings_write (const char *path, const char *buf, size_t len, FUSE_OFF_T offset, struct fuse_file_info * info) {
+  
   bindings_t *b = bindings_get_context();
 
   b->op = OP_WRITE;
@@ -1242,6 +1242,7 @@ static int bindings_alloc () {
   int free_index = -1;
   size_t size = sizeof(bindings_t);
 
+  /** searching for the first free (==NULL) binding */
   for (int i = 0; i < bindings_mounted_count; i++) {
     if (bindings_mounted[i] == NULL) {
       free_index = i;
@@ -1249,7 +1250,12 @@ static int bindings_alloc () {
     }
   }
 
-  if (free_index == -1 && bindings_mounted_count < 1024) free_index = bindings_mounted_count++;
+  /** if all bindings are busy, we'll create a new one up to 1024 */
+  if (free_index == -1 && bindings_mounted_count < 1024) {
+    free_index = bindings_mounted_count++;
+  }
+
+  /** allocation */
   if (free_index != -1) {
     bindings_t *b = bindings_mounted[free_index] = (bindings_t *) malloc(size);
     memset(b, 0, size);
@@ -1260,6 +1266,9 @@ static int bindings_alloc () {
 }
 
 NAN_METHOD(Mount) {
+
+
+
   if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
 
   mutex_lock(&mutex);
@@ -1276,6 +1285,7 @@ NAN_METHOD(Mount) {
 
   Nan::Utf8String path(info[0]);
   Local<Object> ops = info[1].As<Object>();
+
 
   b->ops_init = LOOKUP_CALLBACK(ops, "init");
   b->ops_error = LOOKUP_CALLBACK(ops, "error");
@@ -1321,17 +1331,24 @@ NAN_METHOD(Mount) {
   strcpy(b->mnt, *path);
   strcpy(b->mntopts, "-o");
 
-  Local<Array> options = Nan::Get(ops, LOCAL_STRING("options")).ToLocalChecked().As<Array>();
-  //Local<Array> options = ops->Get(LOCAL_STRING("options")).As<Array>();
+
+  /* Will be empty if if the options aren't provided */
+  Local<Array> options = Nan::New<v8::Array>();
+
+  if (ops->Has(Nan::GetCurrentContext(), LOCAL_STRING("options")).FromJust()) {
+     options = Nan::Get(ops, LOCAL_STRING("options")).ToLocalChecked().As<Array>();
+  }
 
 
-  if (options->IsArray()) {
     for (uint32_t i = 0; i < options->Length(); i++) {
+
       Nan::Utf8String option(options->Get(Nan::GetCurrentContext(), i).ToLocalChecked());
       if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
       strcat(b->mntopts, *option);
     }
-  }
+
+
+  
 
   semaphore_init(&(b->semaphore));
   semaphore_init(&(b->semaphore_readdir));
@@ -1358,8 +1375,7 @@ class UnmountWorker : public Nan::AsyncWorker {
 
   void HandleOKCallback () {
     Nan::HandleScope scope;
-    Nan::Call(*callback, 0, NULL);
-    //callback->Call(0, NULL);
+    callback->Call(0, NULL);
 
 
   }
@@ -1413,5 +1429,7 @@ void Init(v8::Local<v8::Object> exports) {
   exports->Set(context, Nan::New("populateContext").ToLocalChecked(), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction(context).ToLocalChecked());
 }
 
+NODE_MODULE(fuse_bindings, Init);
 
-NODE_MODULE(fuse_bindings, Init)
+
+
