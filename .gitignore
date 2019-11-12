@@ -3,3 +3,5 @@ node_modules
 build
 deps/
 npm-debug.log
+.idea
+.vscode
