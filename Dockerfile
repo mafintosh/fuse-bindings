@@ -11,6 +11,10 @@ COPY ./ ./
 
 RUN npm install -g node-gyp
 RUN npm install
+
+#we also can call a "node-gyp-build" directly
 RUN node-gyp configure && node-gyp build
 
+# FUSE also need for options & flags "--rm --device /dev/fuse --privileged"
+# to work properly into a docker container
 CMD ["node", "example"]

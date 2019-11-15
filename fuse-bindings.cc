@@ -1256,7 +1256,7 @@ NAN_METHOD(Mount) {
         strcpy(b->mnt, *path);
         strcpy(b->mntopts, "-o");
 
-         /* Will be empty if if the options aren't provided */
+         /* A nullable implementation of the options parsing. Will be empty if options aren't provided. */
         Local<Array> options = Nan::New<v8::Array>();
 
         if (ops->Has(Nan::GetCurrentContext(), LOCAL_STRING("options")).FromJust()) {
