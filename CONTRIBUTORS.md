@@ -1,0 +1,17 @@
+- [Mathias Buus](https://github.com/mafintosh)
+- Chia-liang Kao
+- [Raymond Hammarling](https://github.com/raymond-h)
+- Raymond Hammarling
+- Jesús Leganés Combarro "piranna
+- Lars-Magnus Skog
+- [Andrew Osheroff](https://github.com/andrewosh)
+- Jan Kühle
+- [Diogo Resende](https://github.com/dresende)
+- Daniel Cousens
+- David Knoll
+- [Sam Johnson](https://github.com/sam0x17)
+- Marinko
+- raffis
+- echoa
+- [Frank Lemanschik](https://github.com/frank-dspeed)
+
