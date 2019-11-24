@@ -38,17 +38,17 @@ tape('read', function (t) {
 
     fs.readFile(path.join(mnt, 'test'), function (err, buf) {
       t.error(err, 'no error')
-      t.same(buf, new Buffer('hello world'), 'read file')
+      t.same(buf, Buffer.from('hello world'), 'read file')
 
       fs.readFile(path.join(mnt, 'test'), function (err, buf) {
         t.error(err, 'no error')
-        t.same(buf, new Buffer('hello world'), 'read file again')
+        t.same(buf, Buffer.from('hello world'), 'read file again')
 
         fs.createReadStream(path.join(mnt, 'test'), { start: 0, end: 4 }).pipe(concat(function (buf) {
-          t.same(buf, new Buffer('hello'), 'partial read file')
+          t.same(buf, Buffer.from('hello'), 'partial read file')
 
           fs.createReadStream(path.join(mnt, 'test'), { start: 6, end: 10 }).pipe(concat(function (buf) {
-            t.same(buf, new Buffer('world'), 'partial read file + start offset')
+            t.same(buf, Buffer.from('world'), 'partial read file + start offset')
 
             fuse.unmount(mnt, function () {
               t.end()

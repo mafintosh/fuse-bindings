@@ -7,7 +7,7 @@ var path = require('path')
 
 tape('write', function (t) {
   var created = false
-  var data = new Buffer(1024)
+  var data = Buffer.from(1024)
   var size = 0
 
   var ops = {
@@ -44,7 +44,7 @@ tape('write', function (t) {
 
     fs.writeFile(path.join(mnt, 'hello'), 'hello world', function (err) {
       t.error(err, 'no error')
-      t.same(data.slice(0, size), new Buffer('hello world'), 'data was written')
+      t.same(data.slice(0, size), Buffer.from('hello world'), 'data was written')
 
       fuse.unmount(mnt, function () {
         t.end()

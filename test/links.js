@@ -50,7 +50,7 @@ tape('readlink', function (t) {
 
           fs.readFile(path.join(mnt, 'link'), function (err, buf) {
             t.error(err, 'no error')
-            t.same(buf, new Buffer('hello world'), 'can read link content')
+            t.same(buf, Buffer.from('hello world'), 'can read link content')
 
             fuse.unmount(mnt, function () {
               t.end()
