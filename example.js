@@ -1,4 +1,4 @@
-var fuse = require('./')
+var fuse = require('.')
 
 var mountPath = process.platform !== 'win32' ? './mnt' : 'M:\\'
 

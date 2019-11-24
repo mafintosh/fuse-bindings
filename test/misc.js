@@ -3,7 +3,7 @@ var fuse = require('../')
 var tape = require('tape')
 
 tape('mount', function (t) {
-  fuse.mount(mnt, {force: true}, function (err) {
+  fuse.mount(mnt, { force: true }, function (err) {
     t.error(err, 'no error')
     t.ok(true, 'works')
     fuse.unmount(mnt, function () {
@@ -13,11 +13,11 @@ tape('mount', function (t) {
 })
 
 tape('mount + unmount + mount', function (t) {
-  fuse.mount(mnt, {force: true}, function (err) {
+  fuse.mount(mnt, { force: true }, function (err) {
     t.error(err, 'no error')
     t.ok(true, 'works')
     fuse.unmount(mnt, function () {
-      fuse.mount(mnt, {force: true}, function (err) {
+      fuse.mount(mnt, { force: true }, function (err) {
         t.error(err, 'no error')
         t.ok(true, 'works')
         fuse.unmount(mnt, function () {

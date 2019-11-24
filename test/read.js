@@ -14,8 +14,8 @@ tape('read', function (t) {
       return cb(fuse.ENOENT)
     },
     getattr: function (path, cb) {
-      if (path === '/') return cb(null, stat({mode: 'dir', size: 4096}))
-      if (path === '/test') return cb(null, stat({mode: 'file', size: 11}))
+      if (path === '/') return cb(null, stat({ mode: 'dir', size: 4096 }))
+      if (path === '/test') return cb(null, stat({ mode: 'file', size: 11 }))
       return cb(fuse.ENOENT)
     },
     open: function (path, flags, cb) {
@@ -44,10 +44,10 @@ tape('read', function (t) {
         t.error(err, 'no error')
         t.same(buf, new Buffer('hello world'), 'read file again')
 
-        fs.createReadStream(path.join(mnt, 'test'), {start: 0, end: 4}).pipe(concat(function (buf) {
+        fs.createReadStream(path.join(mnt, 'test'), { start: 0, end: 4 }).pipe(concat(function (buf) {
           t.same(buf, new Buffer('hello'), 'partial read file')
 
-          fs.createReadStream(path.join(mnt, 'test'), {start: 6, end: 10}).pipe(concat(function (buf) {
+          fs.createReadStream(path.join(mnt, 'test'), { start: 6, end: 10 }).pipe(concat(function (buf) {
             t.same(buf, new Buffer('world'), 'partial read file + start offset')
 
             fuse.unmount(mnt, function () {

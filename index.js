@@ -64,7 +64,7 @@ exports.mount = function (mnt, ops, opts, cb) {
   if (!ops.getattr) { // we need this for unmount to work on osx
     ops.getattr = function (path, cb) {
       if (path !== '/') return cb(fuse.EPERM)
-      cb(null, {mtime: new Date(0), atime: new Date(0), ctime: new Date(0), mode: 16877, size: 4096})
+      cb(null, { mtime: new Date(0), atime: new Date(0), ctime: new Date(0), mode: 16877, size: 4096 })
     }
   }
 

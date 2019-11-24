@@ -20,8 +20,8 @@ tape('write', function (t) {
       cb(0)
     },
     getattr: function (path, cb) {
-      if (path === '/') return cb(null, stat({mode: 'dir', size: 4096}))
-      if (path === '/hello' && created) return cb(null, stat({mode: 'file', size: size}))
+      if (path === '/') return cb(null, stat({ mode: 'dir', size: 4096 }))
+      if (path === '/hello' && created) return cb(null, stat({ mode: 'file', size: size }))
       return cb(fuse.ENOENT)
     },
     create: function (path, flags, cb) {
