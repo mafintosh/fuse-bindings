@@ -31,7 +31,8 @@
     "type": "git",
     "url": "https://github.com/direktspeed/node-fuse-bindings.git"
   },
-  "author": "Mathias Buus (@mafintosh)",
+  "author": "Frank Lemanschik <frank@dspeed.eu>",
+  "contributors": [{ "name" : "Mathias Buus", "email" : "@mafintosh", "url" : "https://github.com/mafintosh"}],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/direktspeed/node-fuse-bindings/issues"
