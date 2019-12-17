@@ -1,5 +1,9 @@
 # fuse-bindings
 
+# NOTICE
+
+# We published the successor module to this at https://github.com/fuse-friends/fuse-native
+
 Fully maintained fuse bindings for Node that aims to cover the entire FUSE api
 
 ```
