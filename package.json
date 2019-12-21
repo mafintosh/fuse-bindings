@@ -1,34 +1,42 @@
 {
-  "name": "fuse-bindings",
-  "version": "2.11.2",
-  "description": "Fully maintained fuse bindings for Node that aims to cover the entire FUSE api",
+  "name": "node-fuse-bindings",
+  "version": "2.12.0",
+  "description": "libfuse bindings for Node >=13 aims to cover the entire FUSE api",
   "main": "index.js",
   "scripts": {
-    "install": "node-gyp-build",
+    "install": "prebuild-install || node-gyp rebuild",
     "test": "standard && tape test/*.js",
-    "prebuild": "prebuildify -a --strip",
-    "prebuild-ia32": "prebuildify -a --strip --arch=ia32"
+    "rebuild": "prebuild --compile",
+    "prebuild": "prebuild --all --strip --verbose",
+    "prebuildify": "prebuildify -a --strip",
+    "prebuildify-ia32": "prebuildify -a --strip --arch=ia32",
+    "build-debug": "node-gyp build --debug"
   },
   "gypfile": true,
   "dependencies": {
-    "nan": "^2.3.5",
+    "nan": "^2.14.0",
+    "node-gyp": "^6.0.1",
     "node-gyp-build": "^3.2.2",
-    "xtend": "^4.0.1"
+    "prebuild-install": "^5.3.3",
+    "xtend": "^4.0.2"
   },
   "devDependencies": {
-    "concat-stream": "^1.4.7",
+    "concat-stream": "^1.6.0",
+    "prebuild": "^9.1.1",
     "prebuildify": "^2.4.3",
-    "standard": "^7.1.2",
-    "tape": "^4.6.0"
+    "standard": "^8.6.0",
+    "tape": "^4.11.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mafintosh/fuse-bindings.git"
+    "url": "https://github.com/direktspeed/node-fuse-bindings.git"
   },
-  "author": "Mathias Buus (@mafintosh)",
+  "author": "Frank Lemanschik <frank@dspeed.eu>",
+  "contributors": [{ "name" : "Mathias Buus", "email" : "@mafintosh", "url" : "https://github.com/mafintosh"}],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mafintosh/fuse-bindings/issues"
+    "url": "https://github.com/direktspeed/node-fuse-bindings/issues"
   },
-  "homepage": "https://github.com/mafintosh/fuse-bindings"
+  "typings": "./index.d.ts",
+  "homepage": "https://github.com/direktspeed/node-fuse-bindings"
 }
