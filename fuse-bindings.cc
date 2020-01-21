@@ -30,44 +30,44 @@
 using namespace v8;
 
 #define LOCAL_STRING(s) Nan::New<String>(s).ToLocalChecked()
-#define LOOKUP_CALLBACK(map, name) map->Has(LOCAL_STRING(name)) ? new Nan::Callback(map->Get(LOCAL_STRING(name)).As<Function>()) : NULL
+#define LOOKUP_CALLBACK(map, name) map->Has(Nan::GetCurrentContext(), LOCAL_STRING(name)).FromJust() ? new Nan::Callback(map->Get(Nan::GetCurrentContext(), LOCAL_STRING(name)).ToLocalChecked().As<Function>()) : NULL
 
 enum bindings_ops_t {
-  OP_INIT = 0,
-  OP_ERROR,
-  OP_ACCESS,
-  OP_STATFS,
-  OP_FGETATTR,
-  OP_GETATTR,
-  OP_FLUSH,
-  OP_FSYNC,
-  OP_FSYNCDIR,
-  OP_READDIR,
-  OP_TRUNCATE,
-  OP_FTRUNCATE,
-  OP_UTIMENS,
-  OP_READLINK,
-  OP_CHOWN,
-  OP_CHMOD,
-  OP_MKNOD,
-  OP_SETXATTR,
-  OP_GETXATTR,
-  OP_LISTXATTR,
-  OP_REMOVEXATTR,
-  OP_OPEN,
-  OP_OPENDIR,
-  OP_READ,
-  OP_WRITE,
-  OP_RELEASE,
-  OP_RELEASEDIR,
-  OP_CREATE,
-  OP_UNLINK,
-  OP_RENAME,
-  OP_LINK,
-  OP_SYMLINK,
-  OP_MKDIR,
-  OP_RMDIR,
-  OP_DESTROY
+    OP_INIT = 0,
+    OP_ERROR,
+    OP_ACCESS,
+    OP_STATFS,
+    OP_FGETATTR,
+    OP_GETATTR,
+    OP_FLUSH,
+    OP_FSYNC,
+    OP_FSYNCDIR,
+    OP_READDIR,
+    OP_TRUNCATE,
+    OP_FTRUNCATE,
+    OP_UTIMENS,
+    OP_READLINK,
+    OP_CHOWN,
+    OP_CHMOD,
+    OP_MKNOD,
+    OP_SETXATTR,
+    OP_GETXATTR,
+    OP_LISTXATTR,
+    OP_REMOVEXATTR,
+    OP_OPEN,
+    OP_OPENDIR,
+    OP_READ,
+    OP_WRITE,
+    OP_RELEASE,
+    OP_RELEASEDIR,
+    OP_CREATE,
+    OP_UNLINK,
+    OP_RENAME,
+    OP_LINK,
+    OP_SYMLINK,
+    OP_MKDIR,
+    OP_RMDIR,
+    OP_DESTROY
 };
 
 static Nan::Persistent<Function> buffer_constructor;
@@ -75,75 +75,75 @@ static Nan::Callback *callback_constructor;
 static struct FUSE_STAT empty_stat;
 
 struct bindings_t {
-  int index;
-  int gc;
+    int index;
+    int gc;
 
-  // fuse context
-  int context_uid;
-  int context_gid;
-  int context_pid;
+    // fuse context
+    int context_uid;
+    int context_gid;
+    int context_pid;
 
-  // fuse data
-  char mnt[1024];
-  char mntopts[1024];
-  abstr_thread_t thread;
-  bindings_sem_t semaphore;
-  bindings_sem_t semaphore_readdir;
-  uv_async_t async;
+    // fuse data
+    char mnt[1024];
+    char mntopts[1024];
+    abstr_thread_t thread;
+    bindings_sem_t semaphore;
+    bindings_sem_t semaphore_readdir;
+    uv_async_t async;
 
-  // methods
-  Nan::Callback *ops_init;
-  Nan::Callback *ops_error;
-  Nan::Callback *ops_access;
-  Nan::Callback *ops_statfs;
-  Nan::Callback *ops_getattr;
-  Nan::Callback *ops_fgetattr;
-  Nan::Callback *ops_flush;
-  Nan::Callback *ops_fsync;
-  Nan::Callback *ops_fsyncdir;
-  Nan::Callback *ops_readdir;
-  Nan::Callback *ops_truncate;
-  Nan::Callback *ops_ftruncate;
-  Nan::Callback *ops_readlink;
-  Nan::Callback *ops_chown;
-  Nan::Callback *ops_chmod;
-  Nan::Callback *ops_mknod;
-  Nan::Callback *ops_setxattr;
-  Nan::Callback *ops_getxattr;
-  Nan::Callback *ops_listxattr;
-  Nan::Callback *ops_removexattr;
-  Nan::Callback *ops_open;
-  Nan::Callback *ops_opendir;
-  Nan::Callback *ops_read;
-  Nan::Callback *ops_write;
-  Nan::Callback *ops_release;
-  Nan::Callback *ops_releasedir;
-  Nan::Callback *ops_create;
-  Nan::Callback *ops_utimens;
-  Nan::Callback *ops_unlink;
-  Nan::Callback *ops_rename;
-  Nan::Callback *ops_link;
-  Nan::Callback *ops_symlink;
-  Nan::Callback *ops_mkdir;
-  Nan::Callback *ops_rmdir;
-  Nan::Callback *ops_destroy;
+    // methods
+    Nan::Callback *ops_init;
+    Nan::Callback *ops_error;
+    Nan::Callback *ops_access;
+    Nan::Callback *ops_statfs;
+    Nan::Callback *ops_getattr;
+    Nan::Callback *ops_fgetattr;
+    Nan::Callback *ops_flush;
+    Nan::Callback *ops_fsync;
+    Nan::Callback *ops_fsyncdir;
+    Nan::Callback *ops_readdir;
+    Nan::Callback *ops_truncate;
+    Nan::Callback *ops_ftruncate;
+    Nan::Callback *ops_readlink;
+    Nan::Callback *ops_chown;
+    Nan::Callback *ops_chmod;
+    Nan::Callback *ops_mknod;
+    Nan::Callback *ops_setxattr;
+    Nan::Callback *ops_getxattr;
+    Nan::Callback *ops_listxattr;
+    Nan::Callback *ops_removexattr;
+    Nan::Callback *ops_open;
+    Nan::Callback *ops_opendir;
+    Nan::Callback *ops_read;
+    Nan::Callback *ops_write;
+    Nan::Callback *ops_release;
+    Nan::Callback *ops_releasedir;
+    Nan::Callback *ops_create;
+    Nan::Callback *ops_utimens;
+    Nan::Callback *ops_unlink;
+    Nan::Callback *ops_rename;
+    Nan::Callback *ops_link;
+    Nan::Callback *ops_symlink;
+    Nan::Callback *ops_mkdir;
+    Nan::Callback *ops_rmdir;
+    Nan::Callback *ops_destroy;
 
-  Nan::Callback *callback;
+    Nan::Callback *callback;
 
-  // method data
-  bindings_ops_t op;
-  fuse_fill_dir_t filler; // used in readdir
-  struct fuse_file_info *info;
-  char *path;
-  char *name;
-  FUSE_OFF_T offset;
-  FUSE_OFF_T length;
-  void *data; // various structs
-  int mode;
-  int dev;
-  int uid;
-  int gid;
-  int result;
+    // method data
+    bindings_ops_t op;
+    fuse_fill_dir_t filler; // used in readdir
+    struct fuse_file_info *info;
+    char *path;
+    char *name;
+    FUSE_OFF_T offset;
+    FUSE_OFF_T length;
+    void *data; // various structs
+    int mode;
+    int dev;
+    int uid;
+    int gid;
+    int result;
 };
 
 static bindings_t *bindings_mounted[1024];
@@ -195,9 +195,9 @@ NAN_INLINE v8::Local<v8::Object> bindings_buffer (char *data, size_t length) {
 NAN_INLINE static int bindings_call_ex (bindings_t *b, bool isreaddir) {
   uv_async_send(&(b->async));
   if (isreaddir) {
-    semaphore_wait(&(b->semaphore_readdir));  
+    semaphore_wait(&(b->semaphore_readdir));
   } else {
-    semaphore_wait(&(b->semaphore));  
+    semaphore_wait(&(b->semaphore));
   }
 
   return b->result;
@@ -423,7 +423,7 @@ static int bindings_removexattr (const char *path, const char *name) {
 
 static int bindings_statfs (const char *path, struct statvfs *statfs) {
   bindings_t *b = bindings_get_context();
-  
+
   b->op = OP_STATFS;
   b->path = (char *) path;
   b->data = statfs;
@@ -698,8 +698,8 @@ static thread_fn_rtn_t bindings_thread (void *data) {
 
   int argc = !strcmp(b->mntopts, "-o") ? 1 : 2;
   char *argv[] = {
-    (char *) "fuse_bindings_dummy",
-    (char *) b->mntopts
+          (char *) "fuse_bindings_dummy",
+          (char *) b->mntopts
   };
 
   struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -738,7 +738,7 @@ NAN_INLINE static Local<Date> bindings_get_date (struct timespec *out) {
 }
 
 NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date) {
-  double ms = date->NumberValue();
+  double ms = date->NumberValue(Nan::GetCurrentContext()).FromJust();
   time_t secs = (time_t)(ms / 1000.0);
   time_t rem = ms - (1000.0 * secs);
   time_t ns = rem * 1000000.0;
@@ -747,155 +747,155 @@ NAN_INLINE static void bindings_set_date (struct timespec *out, Local<Date> date
 }
 
 NAN_INLINE static void bindings_set_stat (struct FUSE_STAT *stat, Local<Object> obj) {
-  if (obj->Has(LOCAL_STRING("dev"))) stat->st_dev = obj->Get(LOCAL_STRING("dev"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("ino"))) stat->st_ino = obj->Get(LOCAL_STRING("ino"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("mode"))) stat->st_mode = obj->Get(LOCAL_STRING("mode"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("nlink"))) stat->st_nlink = obj->Get(LOCAL_STRING("nlink"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("uid"))) stat->st_uid = obj->Get(LOCAL_STRING("uid"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("gid"))) stat->st_gid = obj->Get(LOCAL_STRING("gid"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("rdev"))) stat->st_rdev = obj->Get(LOCAL_STRING("rdev"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("size"))) stat->st_size = obj->Get(LOCAL_STRING("size"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("blocks"))) stat->st_blocks = obj->Get(LOCAL_STRING("blocks"))->NumberValue();
-  if (obj->Has(LOCAL_STRING("blksize"))) stat->st_blksize = obj->Get(LOCAL_STRING("blksize"))->NumberValue();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("dev")).FromJust()) stat->st_dev = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("dev")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("ino")).FromJust())  stat->st_ino = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("ino")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("mode")).FromJust())  stat->st_mode = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("mode")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("nlink")).FromJust())  stat->st_nlink = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("nlink")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("uid")).FromJust())  stat->st_uid = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("uid")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("gid")).FromJust())  stat->st_gid = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("gid")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("rdev")).FromJust())  stat->st_rdev = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("rdev")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("size")).FromJust())  stat->st_size = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("size")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("blocks")).FromJust())  stat->st_blocks = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("blocks")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("blksize")).FromJust())  stat->st_blksize = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("blksize")).ToLocalChecked()->NumberValue(Nan::GetCurrentContext()).FromJust();
 #ifdef __APPLE__
-  if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtimespec, obj->Get(LOCAL_STRING("mtime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctimespec, obj->Get(LOCAL_STRING("ctime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atimespec, obj->Get(LOCAL_STRING("atime")).As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("mtime")).FromJust()) bindings_set_date(&stat->st_mtimespec, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("mtime")).ToLocalChecked().As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("ctime")).FromJust()) bindings_set_date(&stat->st_ctimespec, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("ctime")).ToLocalChecked().As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("atime")).FromJust()) bindings_set_date(&stat->st_atimespec, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("atime")).ToLocalChecked().As<Date>());
 #else
-  if (obj->Has(LOCAL_STRING("mtime"))) bindings_set_date(&stat->st_mtim, obj->Get(LOCAL_STRING("mtime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("ctime"))) bindings_set_date(&stat->st_ctim, obj->Get(LOCAL_STRING("ctime")).As<Date>());
-  if (obj->Has(LOCAL_STRING("atime"))) bindings_set_date(&stat->st_atim, obj->Get(LOCAL_STRING("atime")).As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("mtime")).FromJust()) bindings_set_date(&stat->st_mtim, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("mtime")).ToLocalChecked().As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("ctime")).FromJust()) bindings_set_date(&stat->st_ctim, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("ctime")).ToLocalChecked().As<Date>());
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("atime")).FromJust()) bindings_set_date(&stat->st_atim, obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("atime")).ToLocalChecked().As<Date>());
 #endif
 }
 
 NAN_INLINE static void bindings_set_statfs (struct statvfs *statfs, Local<Object> obj) { // from http://linux.die.net/man/2/stat
-  if (obj->Has(LOCAL_STRING("bsize"))) statfs->f_bsize = obj->Get(LOCAL_STRING("bsize"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("frsize"))) statfs->f_frsize = obj->Get(LOCAL_STRING("frsize"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("blocks"))) statfs->f_blocks = obj->Get(LOCAL_STRING("blocks"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("bfree"))) statfs->f_bfree = obj->Get(LOCAL_STRING("bfree"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("bavail"))) statfs->f_bavail = obj->Get(LOCAL_STRING("bavail"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("files"))) statfs->f_files = obj->Get(LOCAL_STRING("files"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("ffree"))) statfs->f_ffree = obj->Get(LOCAL_STRING("ffree"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("favail"))) statfs->f_favail = obj->Get(LOCAL_STRING("favail"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("fsid"))) statfs->f_fsid = obj->Get(LOCAL_STRING("fsid"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("flag"))) statfs->f_flag = obj->Get(LOCAL_STRING("flag"))->Uint32Value();
-  if (obj->Has(LOCAL_STRING("namemax"))) statfs->f_namemax = obj->Get(LOCAL_STRING("namemax"))->Uint32Value();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("bsize")).FromJust()) statfs->f_bsize = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("bsize")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("frsize")).FromJust()) statfs->f_frsize = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("frsize")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("blocks")).FromJust()) statfs->f_blocks = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("blocks")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("bfree")).FromJust()) statfs->f_bfree = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("bfree")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("bavail")).FromJust()) statfs->f_bavail = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("bavail")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("files")).FromJust()) statfs->f_files = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("files")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("ffree")).FromJust()) statfs->f_ffree = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("ffree")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("favail")).FromJust()) statfs->f_favail = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("favail")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("fsid")).FromJust()) statfs->f_fsid = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("fsid")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("flag")).FromJust()) statfs->f_flag = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("flag")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+  if (obj->Has(Nan::GetCurrentContext(), LOCAL_STRING("namemax")).FromJust()) statfs->f_namemax = obj->Get(Nan::GetCurrentContext(), LOCAL_STRING("namemax")).ToLocalChecked()->Uint32Value(Nan::GetCurrentContext()).FromJust();
 }
 
 class SetDirWorker : public Nan::AsyncWorker {
- public:
-  SetDirWorker(bindings_t *b, char **dirs, int dirs_length)
-    : Nan::AsyncWorker(NULL), b(b), dirs(dirs), dirs_length(dirs_length) {}
-  ~SetDirWorker() {}
+public:
+    SetDirWorker(bindings_t *b, char **dirs, int dirs_length)
+            : Nan::AsyncWorker(NULL), b(b), dirs(dirs), dirs_length(dirs_length) {}
+    ~SetDirWorker() {}
 
-  void Execute () {
-    fuse_fill_dir_t fillerToCall = b->filler;
-    void *data = b->data;
-    for (int i = 0; i < dirs_length; i++) {
-      fillerToCall(data, dirs[i], &empty_stat, 0);
+    void Execute () {
+      fuse_fill_dir_t fillerToCall = b->filler;
+      void *data = b->data;
+      for (int i = 0; i < dirs_length; i++) {
+        fillerToCall(data, dirs[i], &empty_stat, 0);
+      }
     }
-  }
-  void WorkComplete(){
-    semaphore_signal(&(b->semaphore_readdir));
-    for (int i = 0; i < dirs_length; i++) {
-      free(dirs[i]);
+    void WorkComplete(){
+      semaphore_signal(&(b->semaphore_readdir));
+      for (int i = 0; i < dirs_length; i++) {
+        free(dirs[i]);
+      }
+      free(dirs);
     }
-    free(dirs);
-  }
- private:
-  bindings_t *b;
-  char **dirs;
-  int dirs_length;
+private:
+    bindings_t *b;
+    char **dirs;
+    int dirs_length;
 };
 
 
 NAN_METHOD(OpCallback) {
-  bindings_t *b = bindings_mounted[info[0]->Uint32Value()];
-  b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value() : 0;
-  bindings_current = NULL;
-  
-  if (!b->result) {
-    switch (b->op) {
-      case OP_STATFS: {
-        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_statfs((struct statvfs *) b->data, info[2].As<Object>());
-      }
-      break;
+        bindings_t *b = bindings_mounted[info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust()];
+        b->result = (info.Length() > 1 && info[1]->IsNumber()) ? info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust() : 0;
+        bindings_current = NULL;
 
-      case OP_GETATTR:
-      case OP_FGETATTR: {
-        if (info.Length() > 2 && info[2]->IsObject()) bindings_set_stat((struct FUSE_STAT *) b->data, info[2].As<Object>());
-      }
-      break;
+        if (!b->result) {
+          switch (b->op) {
+            case OP_STATFS: {
+              if (info.Length() > 2 && info[2]->IsObject()) bindings_set_statfs((struct statvfs *) b->data, info[2].As<Object>());
+            }
+              break;
 
-      case OP_READDIR: {
-        if (info.Length() > 2 && info[2]->IsArray()) {
-          Local<Array> dirs = info[2].As<Array>();
-          
-          char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
-          
-          for (uint32_t i = 0; i < dirs->Length(); i++) {
-            
-            Nan::Utf8String dir(dirs->Get(i));
-            
-            dirs_alloc[i] = (char *) malloc(1024);
-            strcpy(dirs_alloc[i], *dir);
+            case OP_GETATTR:
+            case OP_FGETATTR: {
+              if (info.Length() > 2 && info[2]->IsObject()) bindings_set_stat((struct FUSE_STAT *) b->data, info[2].As<Object>());
+            }
+              break;
+
+            case OP_READDIR: {
+              if (info.Length() > 2 && info[2]->IsArray()) {
+                Local<Array> dirs = info[2].As<Array>();
+
+                char **dirs_alloc = (char**)malloc(sizeof(char*)*dirs->Length());
+
+                for (uint32_t i = 0; i < dirs->Length(); i++) {
+
+                  Nan::Utf8String dir(dirs->Get(Nan::GetCurrentContext(), i).ToLocalChecked());
+
+                  dirs_alloc[i] = (char *) malloc(1024);
+                  strcpy(dirs_alloc[i], *dir);
+                }
+
+                Nan::AsyncQueueWorker(new SetDirWorker(b, dirs_alloc, dirs->Length()));
+                return;
+              }
+            }
+              break;
+
+            case OP_CREATE:
+            case OP_OPEN:
+            case OP_OPENDIR: {
+              if (info.Length() > 2 && info[2]->IsNumber()) {
+                b->info->fh = info[2].As<Number>()->Uint32Value(Nan::GetCurrentContext()).FromJust();
+              }
+            }
+              break;
+
+            case OP_READLINK: {
+              if (info.Length() > 2 && info[2]->IsString()) {
+                Nan::Utf8String path(info[2]);
+                strcpy((char *) b->data, *path);
+              }
+            }
+              break;
+
+            case OP_INIT:
+            case OP_ERROR:
+            case OP_ACCESS:
+            case OP_FLUSH:
+            case OP_FSYNC:
+            case OP_FSYNCDIR:
+            case OP_TRUNCATE:
+            case OP_FTRUNCATE:
+            case OP_CHOWN:
+            case OP_CHMOD:
+            case OP_MKNOD:
+            case OP_SETXATTR:
+            case OP_GETXATTR:
+            case OP_LISTXATTR:
+            case OP_REMOVEXATTR:
+            case OP_READ:
+            case OP_UTIMENS:
+            case OP_WRITE:
+            case OP_RELEASE:
+            case OP_RELEASEDIR:
+            case OP_UNLINK:
+            case OP_RENAME:
+            case OP_LINK:
+            case OP_SYMLINK:
+            case OP_MKDIR:
+            case OP_RMDIR:
+            case OP_DESTROY:
+              break;
           }
-          
-          Nan::AsyncQueueWorker(new SetDirWorker(b, dirs_alloc, dirs->Length()));
-          return;
         }
-      }
-      break;
 
-      case OP_CREATE:
-      case OP_OPEN:
-      case OP_OPENDIR: {
-        if (info.Length() > 2 && info[2]->IsNumber()) {
-          b->info->fh = info[2].As<Number>()->Uint32Value();
-        }
-      }
-      break;
-
-      case OP_READLINK: {
-        if (info.Length() > 2 && info[2]->IsString()) {
-          Nan::Utf8String path(info[2]);
-          strcpy((char *) b->data, *path);
-        }
-      }
-      break;
-
-      case OP_INIT:
-      case OP_ERROR:
-      case OP_ACCESS:
-      case OP_FLUSH:
-      case OP_FSYNC:
-      case OP_FSYNCDIR:
-      case OP_TRUNCATE:
-      case OP_FTRUNCATE:
-      case OP_CHOWN:
-      case OP_CHMOD:
-      case OP_MKNOD:
-      case OP_SETXATTR:
-      case OP_GETXATTR:
-      case OP_LISTXATTR:
-      case OP_REMOVEXATTR:
-      case OP_READ:
-      case OP_UTIMENS:
-      case OP_WRITE:
-      case OP_RELEASE:
-      case OP_RELEASEDIR:
-      case OP_UNLINK:
-      case OP_RENAME:
-      case OP_LINK:
-      case OP_SYMLINK:
-      case OP_MKDIR:
-      case OP_RMDIR:
-      case OP_DESTROY:
-      break;
-    }
-  }
-
-  semaphore_signal(&(b->semaphore));
+        semaphore_signal(&(b->semaphore));
 }
 
 NAN_INLINE static void bindings_call_op_ex (bindings_t *b, Nan::Callback *fn, int argc, Local<Value> *argv, bool isreaddir) {
@@ -903,8 +903,8 @@ NAN_INLINE static void bindings_call_op_ex (bindings_t *b, Nan::Callback *fn, in
     if (isreaddir) {
       semaphore_signal(&(b->semaphore_readdir));
     } else {
-      semaphore_signal(&(b->semaphore));}  
-    } 
+      semaphore_signal(&(b->semaphore));}
+  }
   else {
     fn->Call(argc, argv);
   }
@@ -916,7 +916,7 @@ NAN_INLINE static void bindings_call_op (bindings_t *b, Nan::Callback *fn, int a
 
 static void bindings_dispatch (uv_async_t* handle, int status) {
   Nan::HandleScope scope;
-  
+
   bindings_t *b = bindings_current = (bindings_t *) handle->data;
   Local<Function> callback = b->callback->GetFunction();
   b->result = -1;
@@ -926,250 +926,250 @@ static void bindings_dispatch (uv_async_t* handle, int status) {
       Local<Value> tmp[] = {callback};
       bindings_call_op(b, b->ops_init, 1, tmp);
     }
-    return;
+      return;
 
     case OP_ERROR: {
       Local<Value> tmp[] = {callback};
       bindings_call_op(b, b->ops_error, 1, tmp);
     }
-    return;
+      return;
 
     case OP_STATFS: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op(b, b->ops_statfs, 2, tmp);
     }
-    return;
+      return;
 
     case OP_FGETATTR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_fgetattr, 3, tmp);
     }
-    return;
+      return;
 
     case OP_GETATTR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op(b, b->ops_getattr, 2, tmp);
     }
-    return;
+      return;
 
     case OP_READDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op_ex(b, b->ops_readdir, 2, tmp, true);
     }
-    return;
+      return;
 
     case OP_CREATE: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_create, 3, tmp);
     }
-    return;
+      return;
 
     case OP_TRUNCATE: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->length), callback};
       bindings_call_op(b, b->ops_truncate, 3, tmp);
     }
-    return;
+      return;
 
     case OP_FTRUNCATE: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->length), callback};
       bindings_call_op(b, b->ops_ftruncate, 4, tmp);
     }
-    return;
+      return;
 
     case OP_ACCESS: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_access, 3, tmp);
     }
-    return;
+      return;
 
     case OP_OPEN: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_open, 3, tmp);
     }
-    return;
+      return;
 
     case OP_OPENDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_opendir, 3, tmp);
     }
-    return;
+      return;
 
     case OP_WRITE: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        Nan::New<Number>(b->info->fh),
-        bindings_buffer((char *) b->data, b->length),
-        Nan::New<Number>(b->length), // TODO: remove me
-        Nan::New<Number>(b->offset),
-        callback
+              LOCAL_STRING(b->path),
+              Nan::New<Number>(b->info->fh),
+              bindings_buffer((char *) b->data, b->length),
+              Nan::New<Number>(b->length), // TODO: remove me
+              Nan::New<Number>(b->offset),
+              callback
       };
       bindings_call_op(b, b->ops_write, 6, tmp);
     }
-    return;
+      return;
 
     case OP_READ: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        Nan::New<Number>(b->info->fh),
-        bindings_buffer((char *) b->data, b->length),
-        Nan::New<Number>(b->length), // TODO: remove me
-        Nan::New<Number>(b->offset),
-        callback
+              LOCAL_STRING(b->path),
+              Nan::New<Number>(b->info->fh),
+              bindings_buffer((char *) b->data, b->length),
+              Nan::New<Number>(b->length), // TODO: remove me
+              Nan::New<Number>(b->offset),
+              callback
       };
       bindings_call_op(b, b->ops_read, 6, tmp);
     }
-    return;
+      return;
 
     case OP_RELEASE: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_release, 3, tmp);
     }
-    return;
+      return;
 
     case OP_RELEASEDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_releasedir, 3, tmp);
     }
-    return;
+      return;
 
     case OP_UNLINK: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op(b, b->ops_unlink, 2, tmp);
     }
-    return;
+      return;
 
     case OP_RENAME: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), LOCAL_STRING((char *) b->data), callback};
       bindings_call_op(b, b->ops_rename, 3, tmp);
     }
-    return;
+      return;
 
     case OP_LINK: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), LOCAL_STRING((char *) b->data), callback};
       bindings_call_op(b, b->ops_link, 3, tmp);
     }
-    return;
+      return;
 
     case OP_SYMLINK: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), LOCAL_STRING((char *) b->data), callback};
       bindings_call_op(b, b->ops_symlink, 3, tmp);
     }
-    return;
+      return;
 
     case OP_CHMOD: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_chmod, 3, tmp);
     }
-    return;
+      return;
 
     case OP_MKNOD: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), Nan::New<Number>(b->dev), callback};
       bindings_call_op(b, b->ops_mknod, 4, tmp);
     }
-    return;
+      return;
 
     case OP_CHOWN: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->uid), Nan::New<Number>(b->gid), callback};
       bindings_call_op(b, b->ops_chown, 4, tmp);
     }
-    return;
+      return;
 
     case OP_READLINK: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op(b, b->ops_readlink, 2, tmp);
     }
-    return;
+      return;
 
     case OP_SETXATTR: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        LOCAL_STRING(b->name),
-        bindings_buffer((char *) b->data, b->length),
-        Nan::New<Number>(b->length),
-        Nan::New<Number>(b->offset),
-        Nan::New<Number>(b->mode),
-        callback
+              LOCAL_STRING(b->path),
+              LOCAL_STRING(b->name),
+              bindings_buffer((char *) b->data, b->length),
+              Nan::New<Number>(b->length),
+              Nan::New<Number>(b->offset),
+              Nan::New<Number>(b->mode),
+              callback
       };
       bindings_call_op(b, b->ops_setxattr, 7, tmp);
     }
-    return;
+      return;
 
     case OP_GETXATTR: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        LOCAL_STRING(b->name),
-        bindings_buffer((char *) b->data, b->length),
-        Nan::New<Number>(b->length),
-        Nan::New<Number>(b->offset),
-        callback
+              LOCAL_STRING(b->path),
+              LOCAL_STRING(b->name),
+              bindings_buffer((char *) b->data, b->length),
+              Nan::New<Number>(b->length),
+              Nan::New<Number>(b->offset),
+              callback
       };
       bindings_call_op(b, b->ops_getxattr, 6, tmp);
     }
-    return;
+      return;
 
     case OP_LISTXATTR: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        bindings_buffer((char *) b->data, b->length),
-        Nan::New<Number>(b->length),
-        callback
+              LOCAL_STRING(b->path),
+              bindings_buffer((char *) b->data, b->length),
+              Nan::New<Number>(b->length),
+              callback
       };
       bindings_call_op(b, b->ops_listxattr, 4, tmp);
     }
-    return;
+      return;
 
     case OP_REMOVEXATTR: {
       Local<Value> tmp[] = {
-        LOCAL_STRING(b->path),
-        LOCAL_STRING(b->name),
-        callback
+              LOCAL_STRING(b->path),
+              LOCAL_STRING(b->name),
+              callback
       };
       bindings_call_op(b, b->ops_removexattr, 3, tmp);
     }
-    return;
+      return;
 
     case OP_MKDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_mkdir, 3, tmp);
     }
-    return;
+      return;
 
     case OP_RMDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), callback};
       bindings_call_op(b, b->ops_rmdir, 2, tmp);
     }
-    return;
+      return;
 
     case OP_DESTROY: {
       Local<Value> tmp[] = {callback};
       bindings_call_op(b, b->ops_destroy, 1, tmp);
     }
-    return;
+      return;
 
     case OP_UTIMENS: {
       struct timespec *tv = (struct timespec *) b->data;
       Local<Value> tmp[] = {LOCAL_STRING(b->path), bindings_get_date(tv), bindings_get_date(tv + 1), callback};
       bindings_call_op(b, b->ops_utimens, 4, tmp);
     }
-    return;
+      return;
 
     case OP_FLUSH: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), callback};
       bindings_call_op(b, b->ops_flush, 3, tmp);
     }
-    return;
+      return;
 
     case OP_FSYNC: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_fsync, 4, tmp);
     }
-    return;
+      return;
 
     case OP_FSYNCDIR: {
       Local<Value> tmp[] = {LOCAL_STRING(b->path), Nan::New<Number>(b->info->fh), Nan::New<Number>(b->mode), callback};
       bindings_call_op(b, b->ops_fsyncdir, 4, tmp);
     }
-    return;
+      return;
   }
 
   semaphore_signal(&(b->semaphore));
@@ -1197,141 +1197,149 @@ static int bindings_alloc () {
 }
 
 NAN_METHOD(Mount) {
-  if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
+        if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
 
-  mutex_lock(&mutex);
-  int index = bindings_alloc();
-  mutex_unlock(&mutex);
+        mutex_lock(&mutex);
+        int index = bindings_alloc();
+        mutex_unlock(&mutex);
 
-  if (index == -1) return Nan::ThrowError("You cannot mount more than 1024 filesystem in one process");
+        if (index == -1) return Nan::ThrowError("You cannot mount more than 1024 filesystem in one process");
 
-  mutex_lock(&mutex);
-  bindings_t *b = bindings_mounted[index];
-  mutex_unlock(&mutex);
+        mutex_lock(&mutex);
+        bindings_t *b = bindings_mounted[index];
+        mutex_unlock(&mutex);
 
-  memset(&empty_stat, 0, sizeof(empty_stat));
+        memset(&empty_stat, 0, sizeof(empty_stat));
 
-  Nan::Utf8String path(info[0]);
-  Local<Object> ops = info[1].As<Object>();
+        Nan::Utf8String path(info[0]);
+        Local<Object> ops = info[1].As<Object>();
 
-  b->ops_init = LOOKUP_CALLBACK(ops, "init");
-  b->ops_error = LOOKUP_CALLBACK(ops, "error");
-  b->ops_access = LOOKUP_CALLBACK(ops, "access");
-  b->ops_statfs = LOOKUP_CALLBACK(ops, "statfs");
-  b->ops_getattr = LOOKUP_CALLBACK(ops, "getattr");
-  b->ops_fgetattr = LOOKUP_CALLBACK(ops, "fgetattr");
-  b->ops_flush = LOOKUP_CALLBACK(ops, "flush");
-  b->ops_fsync = LOOKUP_CALLBACK(ops, "fsync");
-  b->ops_fsyncdir = LOOKUP_CALLBACK(ops, "fsyncdir");
-  b->ops_readdir = LOOKUP_CALLBACK(ops, "readdir");
-  b->ops_truncate = LOOKUP_CALLBACK(ops, "truncate");
-  b->ops_ftruncate = LOOKUP_CALLBACK(ops, "ftruncate");
-  b->ops_readlink = LOOKUP_CALLBACK(ops, "readlink");
-  b->ops_chown = LOOKUP_CALLBACK(ops, "chown");
-  b->ops_chmod = LOOKUP_CALLBACK(ops, "chmod");
-  b->ops_mknod = LOOKUP_CALLBACK(ops, "mknod");
-  b->ops_setxattr = LOOKUP_CALLBACK(ops, "setxattr");
-  b->ops_getxattr = LOOKUP_CALLBACK(ops, "getxattr");
-  b->ops_listxattr = LOOKUP_CALLBACK(ops, "listxattr");
-  b->ops_removexattr = LOOKUP_CALLBACK(ops, "removexattr");
-  b->ops_open = LOOKUP_CALLBACK(ops, "open");
-  b->ops_opendir = LOOKUP_CALLBACK(ops, "opendir");
-  b->ops_read = LOOKUP_CALLBACK(ops, "read");
-  b->ops_write = LOOKUP_CALLBACK(ops, "write");
-  b->ops_release = LOOKUP_CALLBACK(ops, "release");
-  b->ops_releasedir = LOOKUP_CALLBACK(ops, "releasedir");
-  b->ops_create = LOOKUP_CALLBACK(ops, "create");
-  b->ops_utimens = LOOKUP_CALLBACK(ops, "utimens");
-  b->ops_unlink = LOOKUP_CALLBACK(ops, "unlink");
-  b->ops_rename = LOOKUP_CALLBACK(ops, "rename");
-  b->ops_link = LOOKUP_CALLBACK(ops, "link");
-  b->ops_symlink = LOOKUP_CALLBACK(ops, "symlink");
-  b->ops_mkdir = LOOKUP_CALLBACK(ops, "mkdir");
-  b->ops_rmdir = LOOKUP_CALLBACK(ops, "rmdir");
-  b->ops_destroy = LOOKUP_CALLBACK(ops, "destroy");
+        b->ops_init = LOOKUP_CALLBACK(ops, "init");
+        b->ops_error = LOOKUP_CALLBACK(ops, "error");
+        b->ops_access = LOOKUP_CALLBACK(ops, "access");
+        b->ops_statfs = LOOKUP_CALLBACK(ops, "statfs");
+        b->ops_getattr = LOOKUP_CALLBACK(ops, "getattr");
+        b->ops_fgetattr = LOOKUP_CALLBACK(ops, "fgetattr");
+        b->ops_flush = LOOKUP_CALLBACK(ops, "flush");
+        b->ops_fsync = LOOKUP_CALLBACK(ops, "fsync");
+        b->ops_fsyncdir = LOOKUP_CALLBACK(ops, "fsyncdir");
+        b->ops_readdir = LOOKUP_CALLBACK(ops, "readdir");
+        b->ops_truncate = LOOKUP_CALLBACK(ops, "truncate");
+        b->ops_ftruncate = LOOKUP_CALLBACK(ops, "ftruncate");
+        b->ops_readlink = LOOKUP_CALLBACK(ops, "readlink");
+        b->ops_chown = LOOKUP_CALLBACK(ops, "chown");
+        b->ops_chmod = LOOKUP_CALLBACK(ops, "chmod");
+        b->ops_mknod = LOOKUP_CALLBACK(ops, "mknod");
+        b->ops_setxattr = LOOKUP_CALLBACK(ops, "setxattr");
+        b->ops_getxattr = LOOKUP_CALLBACK(ops, "getxattr");
+        b->ops_listxattr = LOOKUP_CALLBACK(ops, "listxattr");
+        b->ops_removexattr = LOOKUP_CALLBACK(ops, "removexattr");
+        b->ops_open = LOOKUP_CALLBACK(ops, "open");
+        b->ops_opendir = LOOKUP_CALLBACK(ops, "opendir");
+        b->ops_read = LOOKUP_CALLBACK(ops, "read");
+        b->ops_write = LOOKUP_CALLBACK(ops, "write");
+        b->ops_release = LOOKUP_CALLBACK(ops, "release");
+        b->ops_releasedir = LOOKUP_CALLBACK(ops, "releasedir");
+        b->ops_create = LOOKUP_CALLBACK(ops, "create");
+        b->ops_utimens = LOOKUP_CALLBACK(ops, "utimens");
+        b->ops_unlink = LOOKUP_CALLBACK(ops, "unlink");
+        b->ops_rename = LOOKUP_CALLBACK(ops, "rename");
+        b->ops_link = LOOKUP_CALLBACK(ops, "link");
+        b->ops_symlink = LOOKUP_CALLBACK(ops, "symlink");
+        b->ops_mkdir = LOOKUP_CALLBACK(ops, "mkdir");
+        b->ops_rmdir = LOOKUP_CALLBACK(ops, "rmdir");
+        b->ops_destroy = LOOKUP_CALLBACK(ops, "destroy");
 
-  Local<Value> tmp[] = {Nan::New<Number>(index), Nan::New<FunctionTemplate>(OpCallback)->GetFunction()};
-  b->callback = new Nan::Callback(callback_constructor->Call(2, tmp).As<Function>());
+        Local<Value> tmp[] = {Nan::New<Number>(index), Nan::New<FunctionTemplate>(OpCallback)->GetFunction(Nan::GetCurrentContext()).ToLocalChecked()};
+        b->callback = new Nan::Callback(callback_constructor->Call(2, tmp).As<Function>());
 
-  strcpy(b->mnt, *path);
-  strcpy(b->mntopts, "-o");
+        strcpy(b->mnt, *path);
+        strcpy(b->mntopts, "-o");
 
-  Local<Array> options = ops->Get(LOCAL_STRING("options")).As<Array>();
-  if (options->IsArray()) {
-    for (uint32_t i = 0; i < options->Length(); i++) {
-      Nan::Utf8String option(options->Get(i));
-      if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
-      strcat(b->mntopts, *option);
-    }
-  }
+         /* A nullable implementation of the options parsing. Will be empty if options aren't provided. */
+        Local<Array> options = Nan::New<v8::Array>();
 
-  semaphore_init(&(b->semaphore));
-  semaphore_init(&(b->semaphore_readdir));
-  uv_async_init(uv_default_loop(), &(b->async), (uv_async_cb) bindings_dispatch);
-  b->async.data = b;
+        if (ops->Has(Nan::GetCurrentContext(), LOCAL_STRING("options")).FromJust()) {
+          options = Nan::Get(ops, LOCAL_STRING("options")).ToLocalChecked().As<Array>();
+        }
 
-  thread_create(&(b->thread), bindings_thread, b);
+
+          for (uint32_t i = 0; i < options->Length(); i++) {
+            Nan::Utf8String option(options->Get(Nan::GetCurrentContext(), i).ToLocalChecked());
+            if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
+            strcat(b->mntopts, *option);
+          }
+
+        semaphore_init(&(b->semaphore));
+        semaphore_init(&(b->semaphore_readdir));
+        uv_async_init(uv_default_loop(), &(b->async), (uv_async_cb) bindings_dispatch);
+        b->async.data = b;
+
+        thread_create(&(b->thread), bindings_thread, b);
 }
 
 class UnmountWorker : public Nan::AsyncWorker {
- public:
-  UnmountWorker(Nan::Callback *callback, char *path)
-    : Nan::AsyncWorker(callback), path(path), result(0) {}
-  ~UnmountWorker() {}
+public:
+    UnmountWorker(Nan::Callback *callback, char *path)
+            : Nan::AsyncWorker(callback), path(path), result(0) {}
+    ~UnmountWorker() {}
 
-  void Execute () {
-    result = bindings_unmount(path);
-    free(path);
+    void Execute () {
+      result = bindings_unmount(path);
+      free(path);
 
-    if (result != 0) {
-      SetErrorMessage("Error");
+      if (result != 0) {
+        SetErrorMessage("Error");
+      }
     }
-  }
 
-  void HandleOKCallback () {
-    Nan::HandleScope scope;
-    callback->Call(0, NULL);
-  }
+    void HandleOKCallback () {
+      Nan::HandleScope scope;
+      callback->Call(0, NULL);
+    }
 
- private:
-  char *path;
-  int result;
+private:
+    char *path;
+    int result;
 };
 
 NAN_METHOD(SetCallback) {
-  callback_constructor = new Nan::Callback(info[0].As<Function>());
+        callback_constructor = new Nan::Callback(info[0].As<Function>());
 }
 
 NAN_METHOD(SetBuffer) {
-  buffer_constructor.Reset(info[0].As<Function>());
+        buffer_constructor.Reset(info[0].As<Function>());
 }
 
 NAN_METHOD(PopulateContext) {
-  if (bindings_current == NULL) return Nan::ThrowError("You have to call this inside a fuse operation");
+        if (bindings_current == NULL) return Nan::ThrowError("You have to call this inside a fuse operation");
 
-  Local<Object> ctx = info[0].As<Object>();
-  ctx->Set(LOCAL_STRING("uid"), Nan::New(bindings_current->context_uid));
-  ctx->Set(LOCAL_STRING("gid"), Nan::New(bindings_current->context_gid));
-  ctx->Set(LOCAL_STRING("pid"), Nan::New(bindings_current->context_pid));
+        Local<Object> ctx = info[0].As<Object>();
+        ctx->Set(Nan::GetCurrentContext(), LOCAL_STRING("uid"), Nan::New(bindings_current->context_uid));
+        ctx->Set(Nan::GetCurrentContext(), LOCAL_STRING("gid"), Nan::New(bindings_current->context_gid));
+        ctx->Set(Nan::GetCurrentContext(), LOCAL_STRING("pid"), Nan::New(bindings_current->context_pid));
 }
 
 NAN_METHOD(Unmount) {
-  if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
-  Nan::Utf8String path(info[0]);
-  Local<Function> callback = info[1].As<Function>();
+        if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
+        Nan::Utf8String path(info[0]);
+        Local<Function> callback = info[1].As<Function>();
 
-  char *path_alloc = (char *) malloc(1024);
-  strcpy(path_alloc, *path);
+        char *path_alloc = (char *) malloc(1024);
+        strcpy(path_alloc, *path);
 
-  Nan::AsyncQueueWorker(new UnmountWorker(new Nan::Callback(callback), path_alloc));
+        Nan::AsyncQueueWorker(new UnmountWorker(new Nan::Callback(callback), path_alloc));
 }
 
-void Init(Handle<Object> exports) {
-  exports->Set(LOCAL_STRING("setCallback"), Nan::New<FunctionTemplate>(SetCallback)->GetFunction());
-  exports->Set(LOCAL_STRING("setBuffer"), Nan::New<FunctionTemplate>(SetBuffer)->GetFunction());
-  exports->Set(LOCAL_STRING("mount"), Nan::New<FunctionTemplate>(Mount)->GetFunction());
-  exports->Set(LOCAL_STRING("unmount"), Nan::New<FunctionTemplate>(Unmount)->GetFunction());
-  exports->Set(LOCAL_STRING("populateContext"), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction());
+void Init(v8::Local<v8::Object> exports) {
+
+  v8::Local<v8::Context> context = exports->CreationContext();
+
+  exports->Set(context, Nan::New("setCallback").ToLocalChecked(), Nan::New<FunctionTemplate>(SetCallback)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("setBuffer").ToLocalChecked(), Nan::New<FunctionTemplate>(SetBuffer)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("mount").ToLocalChecked(), Nan::New<FunctionTemplate>(Mount)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("unmount").ToLocalChecked(), Nan::New<FunctionTemplate>(Unmount)->GetFunction(context).ToLocalChecked());
+  exports->Set(context, Nan::New("populateContext").ToLocalChecked(), Nan::New<FunctionTemplate>(PopulateContext)->GetFunction(context).ToLocalChecked());
 }
 
-NODE_MODULE(fuse_bindings, Init)
+NODE_MODULE(fuse_bindings, Init);
