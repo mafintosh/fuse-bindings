@@ -26,11 +26,14 @@ You need to have FUSE installed (or Dokany on Windows)
 ### Windows
 **WARNING**: Dokany is still not quite stable. It can cause BSODs. Be careful.
 
-~~Using this on Windows is slightly more complicated. You need to install [Dokany](https://github.com/dokan-dev/dokany) (for `dokanfuse.lib`, `dokanctl.exe`, driver and service) **and** clone its repo (for the headers).~~
+Note that Dokany provides all necessary dev/fuse headers and sets the required env variables. If dokany has been installed from the 
+current shell those env variable are not exported yet and npm install will likely fail.
+You may either start a new shell or set the required env variables manually.
 
-~~Once the Dokany repo is cloned, you also need to set environment variable `DOKAN_INSTALL_DIR` to the path to `DokenLibrary` of your Dokany installaton, and `DOKAN_FUSE_INCLUDE` to the path to `*dokany repo*\dokan_fuse\include`.~~
-
-**EDIT**: Dokany now includes needed headers and sets proper environment variables when installing! Just install Dokany and this module should install and work just fine! (Drop an issue otherwise)
+```
+DokanLibrary1="C:\\Program Files\\Dokan\\DokanLibrary-VERSION\\"  
+DokanLibrary1_LibraryPath_x64="C:\\Program Files\\Dokan\\DokanLibrary-VERSION\\lib\\"
+```
 
 ## Usage
 
