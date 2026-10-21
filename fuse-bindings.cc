@@ -837,7 +837,7 @@ NAN_METHOD(OpCallback) {
             
             Nan::Utf8String dir(dirs->Get(i));
             
-            dirs_alloc[i] = (char *) malloc(1024);
+            dirs_alloc[i] = (char *) malloc(dir.length() + 1);
             strcpy(dirs_alloc[i], *dir);
           }
           
@@ -859,7 +859,10 @@ NAN_METHOD(OpCallback) {
       case OP_READLINK: {
         if (info.Length() > 2 && info[2]->IsString()) {
           Nan::Utf8String path(info[2]);
-          strcpy((char *) b->data, *path);
+          if (b->length > 0) {
+            strncpy((char *) b->data, *path, b->length - 1);
+            ((char *) b->data)[b->length - 1] = '\0';
+          }
         }
       }
       break;
@@ -1198,6 +1201,8 @@ static int bindings_alloc () {
 
 NAN_METHOD(Mount) {
   if (!info[0]->IsString()) return Nan::ThrowError("mnt must be a string");
+  if (Nan::Utf8String(info[0]).length() >= (int) sizeof(bindings_mounted[0]->mnt))
+    return Nan::ThrowError("mnt is too long");
 
   mutex_lock(&mutex);
   int index = bindings_alloc();
@@ -1253,15 +1258,15 @@ NAN_METHOD(Mount) {
   Local<Value> tmp[] = {Nan::New<Number>(index), Nan::New<FunctionTemplate>(OpCallback)->GetFunction()};
   b->callback = new Nan::Callback(callback_constructor->Call(2, tmp).As<Function>());
 
-  strcpy(b->mnt, *path);
+  strncpy(b->mnt, *path, sizeof(b->mnt) - 1);
   strcpy(b->mntopts, "-o");
 
   Local<Array> options = ops->Get(LOCAL_STRING("options")).As<Array>();
   if (options->IsArray()) {
     for (uint32_t i = 0; i < options->Length(); i++) {
       Nan::Utf8String option(options->Get(i));
-      if (strcmp(b->mntopts, "-o")) strcat(b->mntopts, ",");
-      strcat(b->mntopts, *option);
+      if (strcmp(b->mntopts, "-o")) strncat(b->mntopts, ",", sizeof(b->mntopts) - strlen(b->mntopts) - 1);
+      strncat(b->mntopts, *option, sizeof(b->mntopts) - strlen(b->mntopts) - 1);
     }
   }
 
